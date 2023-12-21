@@ -6,3 +6,8 @@ struct CircleCollisionArea NewCollisionArea(int centerX, int centerY, float radi
 
   return collisionArea;
 }
+
+struct CircleCollisionArea UpdateCollisionAreaPosition(Vector2 position) {
+  struct CircleCollisionArea collisionArea = { position.x, position.y };
+  return collisionArea;
+}

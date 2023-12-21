@@ -1,5 +1,7 @@
-#include <raylib.h>
+#include "raylib.h" 
+#include "raymath.h"
 #include <stdlib.h>
+#include "collision_area.h"
 #include "player.h"
 
 struct Player* NewPlayer(Vector2 position, Vector2 speed, Texture2D sprite) {
@@ -17,19 +19,25 @@ void RenderPlayer(struct Player *player) {
 }
 
 void MovePlayer(struct Player *player) {
+  Vector2 velocity = Vector2Zero();
+  velocity = player->position;
+
   if (IsKeyDown(KEY_W)) {
-    player->position.y -= player->speed.y;
+   velocity.y -= player->speed.y;
   }
 
   if (IsKeyDown(KEY_S)) {
-    player->position.y += player->speed.y;
+    velocity.y += player->speed.y;
   }
 
   if (IsKeyDown(KEY_A)) {
-    player->position.x -= player->speed.x;
+    velocity.x -= player->speed.x;
   }
 
   if (IsKeyDown(KEY_D)) {
-    player->position.x += player->speed.x;
+    velocity.x += player->speed.x;
   }
+
+  player->position = velocity;
+  player->collisionArea = UpdateCollisionAreaPosition(player->position);
 }

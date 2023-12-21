@@ -1,3 +1,5 @@
+#ifndef _PLAYERH_
+#define _PLAYERH_
 #include "raylib.h"
 #include "collision_area.h"
 
@@ -11,3 +13,4 @@ struct Player {
 struct Player* NewPlayer(Vector2 position, Vector2 speed, Texture2D sprite);
 void RenderPlayer(struct Player *player);
 void MovePlayer(struct Player *player);
+#endif
