@@ -4,7 +4,7 @@ project(Asteroids)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(SOURCE_FILES main.c)
+set(SOURCE_FILES main.c player.c collision_area.c)
 
 add_executable(Asteroids ${SOURCE_FILES})
 

@@ -1,24 +1,28 @@
 #include "raylib.h"
+#include "player.h"
 
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
-
-struct Circle {
-  int centerX;
-  int centerY;
-  float radius;
-  Color color;
-};
 
 int main()
 {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Asteroids");
   SetTargetFPS(60);
-  
+
+  char *path = "/home/williamkds/Projects/asteroids/assets/spaceship.png";
+  Texture2D spaceshipSprite = LoadTexture(path);
+
+  Vector2 playerPosition = {SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0};
+  struct Player *player = NewPlayer(playerPosition, spaceshipSprite);
+  struct CircleCollisionArea collisionArea = NewCollisionArea(playerPosition.x, playerPosition.y, 50, BLACK);
+  player->collisionArea = collisionArea;
+
   while (!WindowShouldClose())
   {
     BeginDrawing();
       ClearBackground(BLACK);
+
+      RenderPlayer(player);
     EndDrawing();
   }
 
