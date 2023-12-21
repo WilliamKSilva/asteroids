@@ -13,18 +13,23 @@ int main()
   Texture2D spaceshipSprite = LoadTexture(path);
 
   Vector2 playerPosition = {SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0};
-  struct Player *player = NewPlayer(playerPosition, spaceshipSprite);
+  Vector2 playerSpeed = {4.0f, 4.0f};
+  struct Player *player = NewPlayer(playerPosition, playerSpeed, spaceshipSprite);
   struct CircleCollisionArea collisionArea = NewCollisionArea(playerPosition.x, playerPosition.y, 50, BLACK);
   player->collisionArea = collisionArea;
 
   while (!WindowShouldClose())
   {
+    MovePlayer(player);
+
     BeginDrawing();
       ClearBackground(BLACK);
 
       RenderPlayer(player);
     EndDrawing();
   }
+
+  free(player);
 
   CloseWindow();
     
