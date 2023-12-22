@@ -22,20 +22,16 @@ int main()
   player->collisionArea = collisionArea;
 
   // TODO: move Asteroid composition to independent function 
-  char *asteroidPath = "/home/williamkds/Projects/asteroids/assets/meteors/meteor-big.png";
-  Texture2D asteroidSprite = LoadTexture(asteroidPath);
   Vector2 asteroidPosition = {SCREEN_WIDTH / 2.0 + 200, SCREEN_HEIGHT / 2.0};
-  Vector2 asteroidSpeed = {2.0f, 3.0f};
-  struct Asteroid *asteroid = NewAsteroid(asteroidPosition, asteroidSpeed, asteroidSprite);
+  Vector2 asteroidSpeed = {2.0f, 2.0f};
+  struct Asteroid *asteroid = NewAsteroid(asteroidPosition, asteroidSpeed, BIG, DIAGONAL_LEFT, UP);
   struct CircleCollisionArea asteroidCollisionArea = NewCollisionArea(asteroidPosition.x, asteroidPosition.y, 50, BLACK);
   asteroid->collisionArea = asteroidCollisionArea;
 
   while (!WindowShouldClose())
   {
     MovePlayer(player);
-
-    printf("%i", player->collisionArea.centerX);
-    printf("\n");
+    MoveAsteroid(asteroid);
 
     BeginDrawing();
       ClearBackground(BLACK);
