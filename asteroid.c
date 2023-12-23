@@ -2,6 +2,7 @@
 #include "raylib.h"
 #include "raymath.h"
 #include "resolution.h"
+#include "timer.h"
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +23,9 @@ struct Asteroid *NewAsteroid(Vector2 position, Vector2 speed,
 }
 
 void RenderAsteroid(struct Asteroid *asteroid) {
+  if (asteroid == NULL) {
+    return;
+  }
   DrawCircle(asteroid->collisionArea.centerX, asteroid->collisionArea.centerY,
              asteroid->collisionArea.radius, asteroid->collisionArea.color);
   DrawTexture(asteroid->sprite, asteroid->position.x, asteroid->position.y,
@@ -29,6 +33,10 @@ void RenderAsteroid(struct Asteroid *asteroid) {
 }
 
 void MoveAsteroid(struct Asteroid *asteroid) {
+  if (asteroid == NULL) {
+    return;
+  }
+
   Vector2 velocity = Vector2Zero();
   velocity = asteroid->position;
 
@@ -93,22 +101,58 @@ enum ASTEROID_MOVE GetRandomAsteroidMove() {
   return asteroidMove;
 }
 
-struct Asteroid *CreateInitialAsteroids() {
+struct Asteroid *AllocateInitialAsteroids() {
   struct Asteroid *asteroids = malloc(sizeof(struct Asteroid) * 6);
 
   for (int i = 0; i < 6; i++) {
-    Vector2 asteroidPosition = {SCREEN_WIDTH / 2.0 + 200, SCREEN_HEIGHT};
-    Vector2 asteroidSpeed = {2.0f, 2.0f};
-    int randomType = RandomInt(SMALL, BIG);
-    struct Asteroid asteroid = {asteroidPosition, asteroidSpeed, BIG,
-                                GetRandomAsteroidMove(), UP};
-    struct CircleCollisionArea asteroidCollisionArea =
-        NewCollisionArea(asteroidPosition.x, asteroidPosition.y, 50, BLACK);
-    asteroid.collisionArea = asteroidCollisionArea;
-    Texture2D sprite = GetAsteroidSprite(BIG);
-    asteroid.sprite = sprite;
-    asteroids[i] = asteroid;
+    asteroids[i].exist = false;
   }
 
   return asteroids;
+}
+
+void CreateAsteroids(struct Asteroid *asteroids) {
+  for (int i = 0; i < 6; i++) {
+
+    // If the asteroid memory space dont hold an asteroid yet, create one
+
+    // If the asteroid memory space hold an asteroid, check if it is on the
+    // screen, if dont use the same memory to create another asteroid with
+    // different settings
+
+    struct Asteroid asteroid = asteroids[i];
+    if (!asteroid.exist) {
+      int randomXAxisPosition = 5 + rand() / (RAND_MAX / (1920 - 5 + 1) + 1);
+      Vector2 asteroidPosition = {randomXAxisPosition, SCREEN_HEIGHT};
+      Vector2 asteroidSpeed = {2.0f, 2.0f};
+      int randomType = RandomInt(SMALL, BIG);
+      struct Asteroid asteroid = {asteroidPosition, asteroidSpeed, BIG,
+                                  GetRandomAsteroidMove(), UP};
+      struct CircleCollisionArea asteroidCollisionArea =
+          NewCollisionArea(asteroidPosition.x, asteroidPosition.y, 50, BLACK);
+      asteroid.collisionArea = asteroidCollisionArea;
+      Texture2D sprite = GetAsteroidSprite(BIG);
+      asteroid.sprite = sprite;
+      asteroid.exist = true;
+      asteroids[i] = asteroid;
+      break;
+    } else {
+      if (!IsObjectOnScreen(asteroid.position)) {
+        int randomXAxisPosition = 5 + rand() / (RAND_MAX / (1920 - 5 + 1) + 1);
+        Vector2 asteroidPosition = {randomXAxisPosition, SCREEN_HEIGHT};
+        Vector2 asteroidSpeed = {2.0f, 2.0f};
+        int randomType = RandomInt(SMALL, BIG);
+        struct Asteroid asteroid = {asteroidPosition, asteroidSpeed, BIG,
+                                    GetRandomAsteroidMove(), UP};
+        struct CircleCollisionArea asteroidCollisionArea =
+            NewCollisionArea(asteroidPosition.x, asteroidPosition.y, 50, BLACK);
+        asteroid.collisionArea = asteroidCollisionArea;
+        Texture2D sprite = GetAsteroidSprite(BIG);
+        asteroid.sprite = sprite;
+        asteroid.exist = true;
+        asteroids[i] = asteroid;
+        break;
+      }
+    }
+  }
 }

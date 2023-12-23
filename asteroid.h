@@ -12,6 +12,7 @@ struct Asteroid {
   Vector2 position;
   Vector2 speed;
   Texture2D sprite;
+  bool exist;
   struct CircleCollisionArea collisionArea;
   enum ASTEROID_TYPE type;
   enum ASTEROID_MOVE move;
@@ -23,5 +24,6 @@ void RenderAsteroid(struct Asteroid *asteroid);
 void MoveAsteroid(struct Asteroid *asteroid);
 Texture2D GetAsteroidSprite(enum ASTEROID_TYPE type);
 enum ASTEROID_MOVE GetRandomAsteroidMove();
-struct Asteroid* CreateInitialAsteroids();
+struct Asteroid* AllocateInitialAsteroids();
+void CreateAsteroids(struct Asteroid *asteroids);
 #endif

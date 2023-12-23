@@ -4,9 +4,11 @@ project(Asteroids)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(SOURCE_FILES main.c player.c collision_area.c)
+set(SOURCE_FILES main.c player.c collision_area.c asteroid.c timer.c resolution.c)
 
 add_executable(Asteroids ${SOURCE_FILES})
 
 add_subdirectory(/usr/local/lib/raylib /usr/local/lib/raylib/src)
 target_link_libraries(Asteroids raylib)
+
+file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
