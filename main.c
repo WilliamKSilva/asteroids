@@ -10,8 +10,6 @@
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
 
-// TODO: change from CMake to Makefile
-
 bool OutOfScreen(Vector2 position) {
   return position.x >= 1920 || position.y >= 1080;
 };
@@ -37,22 +35,24 @@ int main()
   struct CircleCollisionArea collisionArea = NewCollisionArea(playerPosition.x, playerPosition.y, 50, WHITE);
   player->collisionArea = collisionArea;
 
-  Vector2 asteroidPosition = {SCREEN_WIDTH / 2.0 + 200, SCREEN_HEIGHT / 2.0};
-  Vector2 asteroidSpeed = {2.0f, 2.0f};
-  struct Asteroid *asteroid = NewAsteroid(asteroidPosition, asteroidSpeed, BIG, DIAGONAL_LEFT, UP);
-  struct CircleCollisionArea asteroidCollisionArea = NewCollisionArea(asteroidPosition.x, asteroidPosition.y, 50, BLACK);
-  asteroid->collisionArea = asteroidCollisionArea;
+  struct Asteroid* asteroids = CreateInitialAsteroids();
 
   while (!WindowShouldClose())
   {
     MovePlayer(player);
-    MoveAsteroid(asteroid);
+
+    for (int i = 0; i < 6; i++) {
+      MoveAsteroid(&asteroids[i]);
+    }
 
     BeginDrawing();
       ClearBackground(BLACK);
 
       RenderPlayer(player);
-      RenderAsteroid(asteroid);
+
+      for (int i = 0; i < 6; i++) {
+        RenderAsteroid(&asteroids[i]);
+      }
     EndDrawing();
   }
 
