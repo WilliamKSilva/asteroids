@@ -41,7 +41,9 @@ int main() {
 
   Timer asteroidsSpawnTimer = { 0 };
 
-  StartTimer(&asteroidsSpawnTimer, 5.0);
+  StartTimer(&asteroidsSpawnTimer, 1.0);
+
+  ToggleFullscreen();
 
   while (!WindowShouldClose()) {
     MovePlayer(player);

@@ -122,6 +122,7 @@ void CreateAsteroids(struct Asteroid *asteroids) {
 
     struct Asteroid asteroid = asteroids[i];
     if (!asteroid.exist) {
+      // TODO: Move this to NewAsteroid function
       int randomXAxisPosition = 5 + rand() / (RAND_MAX / (1920 - 5 + 1) + 1);
       Vector2 asteroidPosition = {randomXAxisPosition, SCREEN_HEIGHT};
       Vector2 asteroidSpeed = {2.0f, 2.0f};
