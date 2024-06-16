@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include <stdio.h>
+#include <math.h>
 
 typedef struct {
   int centerX;
@@ -22,6 +23,7 @@ typedef struct {
 } GameObject;
 
 void RenderGameObject(GameObject gameObject);
+void UpdateGameObjectPosition(GameObject *gameObject, Vector2 position);
 void MovePlayer(GameObject *player);
 
 int main() {
@@ -101,8 +103,19 @@ void RenderGameObject(GameObject gameObject) {
   DrawTexture(*gameObject.sprite, gameObject.position.x, gameObject.position.y, WHITE);
 }
 
+void UpdateGameObjectPosition(GameObject *gameObject, Vector2 position) {
+  gameObject->position = position;
+
+  if (gameObject->texturePro) {
+    gameObject->texturePro->destRec.x = gameObject->position.x;
+    gameObject->texturePro->destRec.y = gameObject->position.y;
+    return;
+  }
+}
+
 void MovePlayer(GameObject *player) {
   if (player->texturePro == NULL) {
+    printf("%s\n", "Missing texture pro attributes");
     return;
   }
 
@@ -112,5 +125,12 @@ void MovePlayer(GameObject *player) {
 
   if (IsKeyDown(KEY_D)) {
     player->texturePro->rotation += 10;
+  }
+
+  if (IsKeyDown(KEY_W)) {
+    Vector2 newPosition = player->position;
+    newPosition.x += (sin(player->texturePro->rotation * DEG2RAD) * 2.0);
+    newPosition.y -= (cos(player->texturePro->rotation * DEG2RAD) * 2.0);
+    UpdateGameObjectPosition(player, newPosition);
   }
 }
