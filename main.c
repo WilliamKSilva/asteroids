@@ -1,6 +1,11 @@
 #include "raylib.h"
 #include <stdio.h>
 #include <math.h>
+#include "timer.h"
+
+#define PLAYER_MAX_SPEED 10.0
+#define PLAYER_IMPULSE_SPEED 0.6
+#define PLAYER_DRAG_SPEED 0.2
 
 typedef struct {
   int centerX;
@@ -22,9 +27,15 @@ typedef struct {
   TexturePro *texturePro;
 } GameObject;
 
+typedef struct {
+  GameObject gameObject;
+  float speed;
+  Timer* impulseTimer;
+} Player;
+
 void RenderGameObject(GameObject gameObject);
 void UpdateGameObjectPosition(GameObject *gameObject, Vector2 position);
-void MovePlayer(GameObject *player);
+void MovePlayer(Player *player);
 
 int main() {
   const int screenWidth = 1920;
@@ -54,13 +65,23 @@ int main() {
     0
   };
 
-  GameObject player = {
+  Timer timer = {
+    0.0,
+    0.0,
+    false
+  };
+
+  Player player = {
+    {
       {
         (float)screenWidth / 2.0,
         (float)screenHeight / 2.0
       },
       &playerSprite,
       &texturePro
+    },
+    0.0,
+    &timer
   };
 
   while (!WindowShouldClose()) // Detect window close button or ESC key
@@ -74,7 +95,7 @@ int main() {
     //----------------------------------------------------------------------------------
     BeginDrawing();
     ClearBackground(BLACK);
-    RenderGameObject(player);
+    RenderGameObject(player.gameObject);
     EndDrawing();
     //----------------------------------------------------------------------------------
   }
@@ -113,24 +134,43 @@ void UpdateGameObjectPosition(GameObject *gameObject, Vector2 position) {
   }
 }
 
-void MovePlayer(GameObject *player) {
-  if (player->texturePro == NULL) {
+void MovePlayer(Player *player) {
+  if (player->gameObject.texturePro == NULL) {
     printf("%s\n", "Missing texture pro attributes");
     return;
   }
 
   if (IsKeyDown(KEY_A)) {
-    player->texturePro->rotation -= 10;
+    player->gameObject.texturePro->rotation -= 10;
   }
 
   if (IsKeyDown(KEY_D)) {
-    player->texturePro->rotation += 10;
+    player->gameObject.texturePro->rotation += 10;
   }
 
   if (IsKeyDown(KEY_W)) {
-    Vector2 newPosition = player->position;
-    newPosition.x += (sin(player->texturePro->rotation * DEG2RAD) * 2.0);
-    newPosition.y -= (cos(player->texturePro->rotation * DEG2RAD) * 2.0);
-    UpdateGameObjectPosition(player, newPosition);
+    if (player->speed < PLAYER_MAX_SPEED) {
+      player->speed += PLAYER_IMPULSE_SPEED;
+    }
+
+    Vector2 newPosition = player->gameObject.position;
+    newPosition.x += (sin(player->gameObject.texturePro->rotation * DEG2RAD) * player->speed);
+    newPosition.y -= (cos(player->gameObject.texturePro->rotation * DEG2RAD) * player->speed);
+    UpdateGameObjectPosition(&player->gameObject, newPosition);
+  }
+
+  if (IsKeyUp(KEY_W)) {
+    if (player->speed > 0)
+      player->speed -= PLAYER_DRAG_SPEED;
+
+    if (player->speed < 0) {
+      player->speed = 0.0;
+      return;
+    }
+
+    Vector2 newPosition = player->gameObject.position;
+    newPosition.x += (sin(player->gameObject.texturePro->rotation * DEG2RAD) * player->speed);
+    newPosition.y -= (cos(player->gameObject.texturePro->rotation * DEG2RAD) * player->speed);
+    UpdateGameObjectPosition(&player->gameObject, newPosition);
   }
 }
