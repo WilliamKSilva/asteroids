@@ -30,7 +30,6 @@ typedef struct {
 typedef struct {
   GameObject gameObject;
   float speed;
-  Timer* impulseTimer;
 } Player;
 
 void RenderGameObject(GameObject gameObject);
@@ -46,42 +45,35 @@ int main() {
 
   Texture2D playerSprite = LoadTexture("./assets/player.png");
   TexturePro texturePro = {
-    {
-      0,
-      0,
-      playerSprite.width,
-      playerSprite.height 
+    .sourceRec = {
+      .x = 0,
+      .y = 0,
+      .width = playerSprite.width,
+      .height = playerSprite.height 
     },
-    {
-      (float)screenWidth / 2.0,
-      (float)screenHeight / 2.0,
-      playerSprite.width,
-      playerSprite.height 
+    .destRec = {
+      .x = (float)screenWidth / 2.0,
+      .y = (float)screenHeight / 2.0,
+      .width = playerSprite.width,
+      .height = playerSprite.height 
     },
-    {
-      playerSprite.width / 2.0,
-      playerSprite.height / 2.0
+    .origin = {
+      .x = playerSprite.width / 2.0,
+      .y = playerSprite.height / 2.0
     },
-    0
-  };
-
-  Timer timer = {
-    0.0,
-    0.0,
-    false
+    .rotation = 0
   };
 
   Player player = {
-    {
-      {
+    .gameObject = {
+      .position = {
         (float)screenWidth / 2.0,
         (float)screenHeight / 2.0
       },
-      &playerSprite,
-      &texturePro
+      .sprite = &playerSprite,
+      .texturePro = &texturePro
     },
-    0.0,
-    &timer
+    .speed = 0.0,
   };
 
   while (!WindowShouldClose()) // Detect window close button or ESC key
