@@ -1,11 +1,13 @@
 #include "raylib.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
-#include "timer.h"
 
 #define PLAYER_MAX_SPEED 10.0
 #define PLAYER_IMPULSE_SPEED 0.6
 #define PLAYER_DRAG_SPEED 0.2
+#define SCREEN_WIDTH 1920
+#define SCREEN_HEIGHT 1080 
 
 typedef struct {
   int centerX;
@@ -32,49 +34,22 @@ typedef struct {
   float speed;
 } Player;
 
+GameObject BuildGameObject(Vector2 position, const char* spritePath, bool texturePro);
+Player BuildPlayer(GameObject gameObject);
 void RenderGameObject(GameObject gameObject);
 void UpdateGameObjectPosition(GameObject *gameObject, Vector2 position);
 void MovePlayer(Player *player);
 
 int main() {
-  const int screenWidth = 1920;
-  const int screenHeight = 1080;
-
-  InitWindow(screenWidth, screenHeight, "Asteroids");
+  InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Asteroids");
   SetTargetFPS(60);
 
-  Texture2D playerSprite = LoadTexture("./assets/player.png");
-  TexturePro texturePro = {
-    .sourceRec = {
-      .x = 0,
-      .y = 0,
-      .width = playerSprite.width,
-      .height = playerSprite.height 
-    },
-    .destRec = {
-      .x = (float)screenWidth / 2.0,
-      .y = (float)screenHeight / 2.0,
-      .width = playerSprite.width,
-      .height = playerSprite.height 
-    },
-    .origin = {
-      .x = playerSprite.width / 2.0,
-      .y = playerSprite.height / 2.0
-    },
-    .rotation = 0
+  Vector2 playerPosition = {
+    .x = (float)SCREEN_WIDTH / 2.0,
+    .y = (float)SCREEN_HEIGHT / 2.0
   };
-
-  Player player = {
-    .gameObject = {
-      .position = {
-        (float)screenWidth / 2.0,
-        (float)screenHeight / 2.0
-      },
-      .sprite = &playerSprite,
-      .texturePro = &texturePro
-    },
-    .speed = 0.0,
-  };
+  GameObject gameObject = BuildGameObject(playerPosition, "./assets/player.png", true);
+  Player player = BuildPlayer(gameObject); 
 
   while (!WindowShouldClose()) // Detect window close button or ESC key
   {
@@ -126,6 +101,47 @@ void UpdateGameObjectPosition(GameObject *gameObject, Vector2 position) {
   }
 }
 
+GameObject BuildGameObject(Vector2 position, const char* spritePath, bool texturePro) {
+  GameObject gameObject;
+  Texture2D sprite = LoadTexture(spritePath);
+  gameObject.position = position;
+  gameObject.sprite = &sprite;
+  if (texturePro) {
+    TexturePro* texturePro = malloc(sizeof(TexturePro));
+    *texturePro = (TexturePro){
+      .sourceRec = {
+        .x = 0,
+        .y = 0,
+        .width = sprite.width,
+        .height = sprite.height 
+      },
+      .destRec = {
+        .x = position.x,
+        .y = position.y,
+        .width = sprite.width,
+        .height = sprite.height 
+      },
+      .origin = {
+        .x = sprite.width / 2.0,
+        .y = sprite.height / 2.0
+      },
+      .rotation = 0
+    };
+    gameObject.texturePro = texturePro;
+  }
+
+  return gameObject;
+}
+
+Player BuildPlayer(GameObject gameObject) {
+  Player player = {
+    .gameObject = gameObject,
+    .speed = 0.0
+  };
+
+  return player;
+}
+
 void MovePlayer(Player *player) {
   if (player->gameObject.texturePro == NULL) {
     printf("%s\n", "Missing texture pro attributes");
@@ -133,11 +149,11 @@ void MovePlayer(Player *player) {
   }
 
   if (IsKeyDown(KEY_A)) {
-    player->gameObject.texturePro->rotation -= 10;
+    player->gameObject.texturePro->rotation -= 5;
   }
 
   if (IsKeyDown(KEY_D)) {
-    player->gameObject.texturePro->rotation += 10;
+    player->gameObject.texturePro->rotation += 5;
   }
 
   if (IsKeyDown(KEY_W)) {
