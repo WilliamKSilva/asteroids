@@ -5,11 +5,13 @@
 #include "raylib.h"
 #include "timer.h"
 
+#define SCREEN_WIDTH 1920
+#define SCREEN_HEIGHT 1080
 #define PLAYER_MAX_SPEED 10.0
 #define PLAYER_IMPULSE_SPEED 0.6
 #define PLAYER_DRAG_SPEED 0.2
-#define SCREEN_WIDTH 1920
-#define SCREEN_HEIGHT 1080 
+#define ASTEROID_SPEED 7.0
+ 
 
 typedef struct {
   int centerX;
@@ -136,13 +138,7 @@ Asteroid* BuildAsteroid(GameObject *gameObject) {
 
   Asteroid *asteroid = malloc(sizeof(Asteroid));
   asteroid->gameObject = gameObject;
-  asteroid->spawn = TOP;
-
-  if (asteroid->spawn == TOP) {
-    int randomX = RandomNumber(1920);
-    asteroid->gameObject->position.x = (float)randomX;
-    asteroid->gameObject->position.y = -5.0;
-  }
+  asteroid->spawn = randomSpawn;
 
   return asteroid;
 }
@@ -191,8 +187,30 @@ void MovePlayer(Player *player) {
 void MoveAsteroid(Asteroid *asteroid) {
   if (asteroid->spawn == TOP) {
     Vector2 position = asteroid->gameObject->position;
-    position.y += 10.0;
+    position.y += ASTEROID_SPEED;
     UpdateGameObjectPosition(asteroid->gameObject, position);
+    return;
+  }
+
+  if (asteroid->spawn == BOTTOM) {
+    Vector2 position = asteroid->gameObject->position;
+    position.y -= ASTEROID_SPEED;
+    UpdateGameObjectPosition(asteroid->gameObject, position);
+    return;
+  }
+
+  if (asteroid->spawn == LEFT) {
+    Vector2 position = asteroid->gameObject->position;
+    position.x += ASTEROID_SPEED;
+    UpdateGameObjectPosition(asteroid->gameObject, position);
+    return;
+  }
+
+  if (asteroid->spawn == RIGHT) {
+    Vector2 position = asteroid->gameObject->position;
+    position.x -= ASTEROID_SPEED;
+    UpdateGameObjectPosition(asteroid->gameObject, position);
+    return;
   }
 }
 
@@ -205,6 +223,25 @@ void SpawnAsteroid(List *asteroids) {
     position.x = randomX;
     position.y = -5;
   }
+
+  if (asteroid->spawn == BOTTOM) {
+    int randomX = RandomNumber(1920);
+    position.x = randomX;
+    position.y = 1085;
+  }
+
+  if (asteroid->spawn == LEFT) {
+    int randomY = RandomNumber(1080);
+    position.y = randomY;
+    position.x = -5;
+  }
+
+  if (asteroid->spawn == RIGHT) {
+    int randomY = RandomNumber(1080);
+    position.y = randomY;
+    position.x = 1925;
+  }
+
   UpdateGameObjectPosition(asteroid->gameObject, position);
 
   if (asteroids->length == 0) {
