@@ -54,7 +54,7 @@ typedef struct {
   void** data;
 } List;
 
-const int asteroid_spawn_limit = RIGHT - TOP; 
+const int asteroidSpawnLimit = RIGHT - TOP; 
 
 void RenderGameObject(GameObject gameObject) {
   if (gameObject.texturePro) {
@@ -132,7 +132,7 @@ int RandomNumber(int limit) {
 }
 
 Asteroid* BuildAsteroid(GameObject *gameObject) {
-  int randomSpawn = RandomNumber(RIGHT);
+  int randomSpawn = RandomNumber(asteroidSpawnLimit);
 
   Asteroid *asteroid = malloc(sizeof(Asteroid));
   asteroid->gameObject = gameObject;
@@ -324,19 +324,18 @@ int main() {
 
     // Draw
     //----------------------------------------------------------------------------------
-    BeginDrawing();
-    ClearBackground(BLACK);
-      RenderGameObject(*player.gameObject);
-      for (int j = 0; j < asteroidsList.length; j++) {
-        Asteroid *asteroid = (Asteroid*)asteroidsList.data[j];
+      BeginDrawing();
+      ClearBackground(BLACK);
+        RenderGameObject(*player.gameObject);
+        for (int j = 0; j < asteroidsList.length; j++) {
+          Asteroid *asteroid = (Asteroid*)asteroidsList.data[j];
 
-        if (asteroid == NULL)
-          continue;
+          if (asteroid == NULL)
+            continue;
 
-        RenderGameObject(*asteroid->gameObject);
-      }
-        
-    EndDrawing();
+          RenderGameObject(*asteroid->gameObject);
+        }
+      EndDrawing();
     //----------------------------------------------------------------------------------
   }
 
