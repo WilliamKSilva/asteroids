@@ -11,7 +11,6 @@
 #define PLAYER_IMPULSE_SPEED 0.6
 #define PLAYER_DRAG_SPEED 0.2
 #define ASTEROID_SPEED 7.0
- 
 
 typedef struct {
   int centerX;
@@ -84,36 +83,35 @@ void UpdateGameObjectPosition(GameObject *gameObject, Vector2 position) {
   }
 }
 
-GameObject* BuildGameObject(Vector2 position, const char* spritePath, bool texturePro) {
+GameObject* BuildGameObject(Vector2 position, const char* spritePath) {
   GameObject *gameObject = malloc(sizeof(GameObject));
   Texture2D *sprite = malloc(sizeof(Texture2D));
   *sprite = LoadTexture(spritePath);
   gameObject->position = position;
   gameObject->sprite = sprite;
-  gameObject->texturePro = NULL;
-  if (texturePro) {
-    TexturePro *texturePro = malloc(sizeof(TexturePro));
-    *texturePro = (TexturePro){
-      .sourceRec = {
-        .x = 0,
-        .y = 0,
-        .width = sprite->width,
-        .height = sprite->height 
-      },
-      .destRec = {
-        .x = position.x,
-        .y = position.y,
-        .width = sprite->width,
-        .height = sprite->height 
-      },
-      .origin = {
-        .x = sprite->width / 2.0,
-        .y = sprite->height / 2.0
-      },
-      .rotation = 0
-    };
-    gameObject->texturePro = texturePro;
-  }
+
+  TexturePro *texturePro = malloc(sizeof(TexturePro));
+  *texturePro = (TexturePro){
+    .sourceRec = {
+      .x = 0,
+      .y = 0,
+      .width = sprite->width,
+      .height = sprite->height 
+    },
+    .destRec = {
+      .x = position.x,
+      .y = position.y,
+      .width = sprite->width,
+      .height = sprite->height 
+    },
+    .origin = {
+      .x = sprite->width / 2.0,
+      .y = sprite->height / 2.0
+    },
+    .rotation = 0
+  };
+  
+  gameObject->texturePro = texturePro;
 
   return gameObject;
 }
@@ -216,7 +214,7 @@ void MoveAsteroid(Asteroid *asteroid) {
 
 void SpawnAsteroid(List *asteroids) {
   Vector2 position;
-  GameObject *gameObject = BuildGameObject(position, "./assets/asteroid.png", true);
+  GameObject *gameObject = BuildGameObject(position, "./assets/asteroid.png");
   Asteroid *asteroid = BuildAsteroid(gameObject);
   if (asteroid->spawn == TOP) {
     int randomX = RandomNumber(1920);
@@ -264,7 +262,7 @@ int main() {
     .y = (float)SCREEN_HEIGHT / 2.0
   };
 
-  GameObject *gameObject = BuildGameObject(playerPosition, "./assets/player.png", true);
+  GameObject *gameObject = BuildGameObject(playerPosition, "./assets/player.png");
   Player player = BuildPlayer(gameObject); 
 
   Timer asteroidSpawnTimer = {
@@ -296,16 +294,48 @@ int main() {
       }
 
       // Scripted Movement 
-      for (int i = 0; i < asteroidsList.length; i++)
-        MoveAsteroid(asteroidsList.data[i]);
+      for (int i = 0; i < asteroidsList.length; i++) {
+        Asteroid *asteroid = asteroidsList.data[i];
+        if (asteroid == NULL)
+          continue; 
+
+        MoveAsteroid(asteroid);
+      }
+
+      // Check collisions 
+      for (int j = 0; j < asteroidsList.length; j++) {
+        Asteroid *asteroid = asteroidsList.data[j];
+        if (asteroid == NULL)
+          continue;
+
+        bool asteroidAndPlayerCollision = CheckCollisionRecs(
+          asteroid->gameObject->texturePro->destRec,
+          player.gameObject->texturePro->destRec
+        );
+
+        // TODO: List data structure resizing
+        if (asteroidAndPlayerCollision) {
+          free(asteroid);
+          asteroid = NULL;
+          asteroidsList.data[j] = NULL;
+        }
+      }
+
 
     // Draw
     //----------------------------------------------------------------------------------
     BeginDrawing();
     ClearBackground(BLACK);
       RenderGameObject(*player.gameObject);
-      for (int j = 0; j < asteroidsList.length; j++)
-        RenderGameObject(*((Asteroid*)asteroidsList.data[j])->gameObject);
+      for (int j = 0; j < asteroidsList.length; j++) {
+        Asteroid *asteroid = (Asteroid*)asteroidsList.data[j];
+
+        if (asteroid == NULL)
+          continue;
+
+        RenderGameObject(*asteroid->gameObject);
+      }
+        
     EndDrawing();
     //----------------------------------------------------------------------------------
   }
