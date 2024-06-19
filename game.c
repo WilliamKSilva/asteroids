@@ -11,6 +11,7 @@
 #define PLAYER_IMPULSE_SPEED 0.6
 #define PLAYER_DRAG_SPEED 0.2
 #define ASTEROID_SPEED 7.0
+#define ASTEROID_SPAWN_TIME 2.0
 
 typedef struct {
   int centerX;
@@ -56,31 +57,10 @@ typedef struct {
 
 const int asteroidSpawnLimit = RIGHT - TOP; 
 
-void RenderGameObject(GameObject gameObject) {
-  if (gameObject.texturePro) {
-    DrawTexturePro(
-      *gameObject.sprite,
-      gameObject.texturePro->sourceRec,
-      gameObject.texturePro->destRec,
-      gameObject.texturePro->origin,
-      gameObject.texturePro->rotation,
-      WHITE
-    );
+int RandomNumber(int limit) {
+  srand(time(NULL));
 
-    return;
-  }
-
-  DrawTexture(*gameObject.sprite, gameObject.position.x, gameObject.position.y, WHITE);
-}
-
-void UpdateGameObjectPosition(GameObject *gameObject, Vector2 position) {
-  gameObject->position = position;
-
-  if (gameObject->texturePro) {
-    gameObject->texturePro->destRec.x = gameObject->position.x;
-    gameObject->texturePro->destRec.y = gameObject->position.y;
-    return;
-  }
+  return (rand() % limit) + 1;
 }
 
 GameObject* BuildGameObject(Vector2 position, const char* spritePath) {
@@ -116,6 +96,33 @@ GameObject* BuildGameObject(Vector2 position, const char* spritePath) {
   return gameObject;
 }
 
+void RenderGameObject(GameObject gameObject) {
+  if (gameObject.texturePro) {
+    DrawTexturePro(
+      *gameObject.sprite,
+      gameObject.texturePro->sourceRec,
+      gameObject.texturePro->destRec,
+      gameObject.texturePro->origin,
+      gameObject.texturePro->rotation,
+      WHITE
+    );
+
+    return;
+  }
+
+  DrawTexture(*gameObject.sprite, gameObject.position.x, gameObject.position.y, WHITE);
+}
+
+void UpdateGameObjectPosition(GameObject *gameObject, Vector2 position) {
+  gameObject->position = position;
+
+  if (gameObject->texturePro) {
+    gameObject->texturePro->destRec.x = gameObject->position.x;
+    gameObject->texturePro->destRec.y = gameObject->position.y;
+    return;
+  }
+}
+
 Player BuildPlayer(GameObject *gameObject) {
   Player player = {
     .gameObject = gameObject,
@@ -123,22 +130,6 @@ Player BuildPlayer(GameObject *gameObject) {
   };
 
   return player;
-}
-
-int RandomNumber(int limit) {
-  srand(time(NULL));
-
-  return (rand() % limit) + 1;
-}
-
-Asteroid* BuildAsteroid(GameObject *gameObject) {
-  int randomSpawn = RandomNumber(asteroidSpawnLimit);
-
-  Asteroid *asteroid = malloc(sizeof(Asteroid));
-  asteroid->gameObject = gameObject;
-  asteroid->spawn = randomSpawn;
-
-  return asteroid;
 }
 
 void MovePlayer(Player *player) {
@@ -182,6 +173,16 @@ void MovePlayer(Player *player) {
   }
 }
 
+Asteroid* BuildAsteroid(GameObject *gameObject) {
+  int randomSpawn = RandomNumber(asteroidSpawnLimit);
+
+  Asteroid *asteroid = malloc(sizeof(Asteroid));
+  asteroid->gameObject = gameObject;
+  asteroid->spawn = randomSpawn;
+
+  return asteroid;
+}
+
 void MoveAsteroid(Asteroid *asteroid) {
   if (asteroid->spawn == TOP) {
     Vector2 position = asteroid->gameObject->position;
@@ -217,25 +218,25 @@ void SpawnAsteroid(List *asteroids) {
   GameObject *gameObject = BuildGameObject(position, "./assets/asteroid.png");
   Asteroid *asteroid = BuildAsteroid(gameObject);
   if (asteroid->spawn == TOP) {
-    int randomX = RandomNumber(1920);
+    int randomX = RandomNumber(1890);
     position.x = randomX;
     position.y = -5;
   }
 
   if (asteroid->spawn == BOTTOM) {
-    int randomX = RandomNumber(1920);
+    int randomX = RandomNumber(1890);
     position.x = randomX;
     position.y = 1085;
   }
 
   if (asteroid->spawn == LEFT) {
-    int randomY = RandomNumber(1080);
+    int randomY = RandomNumber(1050);
     position.y = randomY;
     position.x = -5;
   }
 
   if (asteroid->spawn == RIGHT) {
-    int randomY = RandomNumber(1080);
+    int randomY = RandomNumber(1050);
     position.y = randomY;
     position.x = 1925;
   }
@@ -253,9 +254,52 @@ void SpawnAsteroid(List *asteroids) {
   }
 }
 
+bool OutOfBoundsAsteroid(Asteroid asteroid) {
+  Vector2 position = asteroid.gameObject->position;
+  if (asteroid.spawn == TOP)
+    return position.y > SCREEN_HEIGHT;
+
+  if (asteroid.spawn == BOTTOM)
+    return position.y < 0;
+
+  if (asteroid.spawn == LEFT)
+    return position.x > SCREEN_WIDTH;
+
+  if (asteroid.spawn == LEFT)
+    return position.x < 0;
+
+  return false;
+}
+
+void RestartGameState(List *asteroids, Player *player, bool *gameRunning) {
+  // Reset asteroids
+  for (int i = 0; i < asteroids->length; i++) {
+    if (asteroids->data[i] == NULL)
+      continue;
+
+    free(asteroids->data[i]);
+    asteroids->data[i] = NULL;
+  }
+
+  free(asteroids->data);
+  asteroids->data = NULL;
+  asteroids->length = 0;
+
+  // Reset player
+  Vector2 position = {
+    .x = 1920.0 / 2.0,
+    .y = 1080.0 / 2.0
+  };
+  UpdateGameObjectPosition(player->gameObject, position);
+
+  *gameRunning = true;
+}
+
 int main() {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Asteroids");
   SetTargetFPS(60);
+
+  bool gameRunning = true;
 
   Vector2 playerPosition = {
     .x = (float)SCREEN_WIDTH / 2.0,
@@ -270,7 +314,7 @@ int main() {
     .startTime = 0.0,
     .started = false,
   };
-  StartTimer(&asteroidSpawnTimer, 5.0);
+  StartTimer(&asteroidSpawnTimer, ASTEROID_SPAWN_TIME);
 
   List asteroidsList = {
     .length = 0,
@@ -282,6 +326,7 @@ int main() {
     // TODO: Update should be framerate independent
     // Update
     //----------------------------------------------------------------------------------
+    if (gameRunning) {
       // Input
       MovePlayer(&player);
 
@@ -289,7 +334,7 @@ int main() {
       if (TimerDone(asteroidSpawnTimer)) {
         SpawnAsteroid(&asteroidsList); 
         ResetTimer(&asteroidSpawnTimer);
-        StartTimer(&asteroidSpawnTimer, 5.0);
+        StartTimer(&asteroidSpawnTimer, ASTEROID_SPAWN_TIME);
         continue;
       }
 
@@ -303,8 +348,8 @@ int main() {
       }
 
       // Check collisions 
-      for (int j = 0; j < asteroidsList.length; j++) {
-        Asteroid *asteroid = asteroidsList.data[j];
+      for (int i = 0; i < asteroidsList.length; i++) {
+        Asteroid *asteroid = asteroidsList.data[i];
         if (asteroid == NULL)
           continue;
 
@@ -316,24 +361,44 @@ int main() {
         // TODO: List data structure resizing
         if (asteroidAndPlayerCollision) {
           free(asteroid);
-          asteroid = NULL;
-          asteroidsList.data[j] = NULL;
+          asteroidsList.data[i] = NULL;
+          gameRunning = false;
+          continue;
         }
       }
 
+      // Check objects out of bounds
+      for (int i = 0; i < asteroidsList.length; i++) {
+        Asteroid *asteroid = asteroidsList.data[i];
+        if (asteroid == NULL)
+          continue;
+
+        if (OutOfBoundsAsteroid(*asteroid)) {
+          free(asteroid);
+          asteroidsList.data[i] = NULL;
+        }
+      }
+    } else {
+      if (IsKeyPressed(KEY_ENTER))
+        RestartGameState(&asteroidsList, &player, &gameRunning);
+    }
 
     // Draw
     //----------------------------------------------------------------------------------
       BeginDrawing();
-      ClearBackground(BLACK);
-        RenderGameObject(*player.gameObject);
-        for (int j = 0; j < asteroidsList.length; j++) {
-          Asteroid *asteroid = (Asteroid*)asteroidsList.data[j];
+        if (gameRunning) {
+          ClearBackground(BLACK);
+          RenderGameObject(*player.gameObject);
+          for (int j = 0; j < asteroidsList.length; j++) {
+            Asteroid *asteroid = (Asteroid*)asteroidsList.data[j];
 
-          if (asteroid == NULL)
-            continue;
+            if (asteroid == NULL)
+              continue;
 
-          RenderGameObject(*asteroid->gameObject);
+            RenderGameObject(*asteroid->gameObject);
+          }
+        } else {
+          DrawText("Game Over - Press Enter to restart", 1920 / 2 - 320, 1080 / 2 - 100, 31, RED);
         }
       EndDrawing();
     //----------------------------------------------------------------------------------
