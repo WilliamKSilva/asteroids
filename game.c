@@ -338,40 +338,24 @@ int main() {
         continue;
       }
 
-      // Scripted Movement 
-      for (int i = 0; i < asteroidsList.length; i++) {
-        Asteroid *asteroid = asteroidsList.data[i];
-        if (asteroid == NULL)
-          continue; 
-
-        MoveAsteroid(asteroid);
-      }
-
-      // Check collisions 
+      // Asteroids Logic 
       for (int i = 0; i < asteroidsList.length; i++) {
         Asteroid *asteroid = asteroidsList.data[i];
         if (asteroid == NULL)
           continue;
 
+        MoveAsteroid(asteroid);
         bool asteroidAndPlayerCollision = CheckCollisionRecs(
           asteroid->gameObject->texturePro->destRec,
           player.gameObject->texturePro->destRec
         );
 
-        // TODO: List data structure resizing
         if (asteroidAndPlayerCollision) {
           free(asteroid);
           asteroidsList.data[i] = NULL;
           gameRunning = false;
-          continue;
+          break;
         }
-      }
-
-      // Check objects out of bounds
-      for (int i = 0; i < asteroidsList.length; i++) {
-        Asteroid *asteroid = asteroidsList.data[i];
-        if (asteroid == NULL)
-          continue;
 
         if (OutOfBoundsAsteroid(*asteroid)) {
           free(asteroid);
