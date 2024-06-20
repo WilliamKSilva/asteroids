@@ -68,6 +68,12 @@ int RandomNumber(int limit) {
   return (rand() % limit) + 1;
 }
 
+void FreePtr(void *ptr) {
+  printf("FreePtr: %p\n", ptr);
+  free(ptr);
+  ptr = NULL;
+}
+
 GameObject* BuildGameObject(Vector2 position, const char* spritePath) {
   GameObject *gameObject = malloc(sizeof(GameObject));
   Texture2D *sprite = malloc(sizeof(Texture2D));
@@ -317,9 +323,30 @@ void UpdateAsteroids(List *asteroids, Player player, bool *gameRunning) {
   }
 }
 
+Asteroid* CheckAsteroidsCollision(List *asteroids, Rectangle objectToBeChecked) {
+  for (int i = 0; i < asteroids->length; ++i) {
+    Asteroid *asteroid = asteroids->data[i]; 
+
+    if (asteroid == NULL)
+      continue;
+
+    bool collisionWithAsteroid = CheckCollisionRecs(
+      asteroid->gameObject->texturePro->destRec,
+      objectToBeChecked
+    );
+
+    if (collisionWithAsteroid) {
+      return asteroids->data[i];
+    }
+  }
+
+  return NULL;
+}
+
 void RenderAsteroids(List *asteroids) {
   for (int i = 0; i < asteroids->length; ++i) {
     Asteroid *asteroid = (Asteroid*)asteroids->data[i];
+
     if (asteroid == NULL)
       continue;
 
@@ -360,6 +387,53 @@ void MoveProjectile(Projectile *projectile) {
   UpdateGameObjectPosition(projectile->gameObject, newPosition);
 }
 
+void UpdateProjectiles(List *projectiles, List* asteroids, Player player) {
+  for (int i = 0; i < projectiles->length; ++i) {
+    Projectile *projectile = projectiles->data[i];
+
+    if (projectile == NULL)
+      continue;
+
+    MoveProjectile(projectile);
+
+    // Check collision with each existing asteroid
+    Asteroid *asteroidCollidedWith = CheckAsteroidsCollision(
+      asteroids,
+      projectile->gameObject->texturePro->destRec
+    );
+
+    if (asteroidCollidedWith != NULL) {
+      free(projectile);
+      projectiles->data[i] = NULL;
+      projectiles->length--;
+
+      free(asteroidCollidedWith);
+      asteroidCollidedWith = NULL;
+      asteroids->length--;
+      break;
+    } else {
+      continue;
+    }
+
+    if (OutOfBoundsGameObject(projectile->gameObject->position)) {
+      free(projectile);
+      projectiles->data[i] = NULL;
+      continue;
+    }
+  }
+}
+
+void RenderProjectiles(List *projectiles) {
+  for (int i = 0; i < projectiles->length; ++i) {
+    Projectile *projectile = (Projectile*)projectiles->data[i];
+
+    if (projectile == NULL)
+      continue;
+
+    RenderGameObject(*projectile->gameObject);
+  }
+}
+
 void RestartGameState(List *asteroids, Player *player, bool *gameRunning) {
   // Reset asteroids
   for (int i = 0; i < asteroids->length; i++) {
@@ -382,32 +456,6 @@ void RestartGameState(List *asteroids, Player *player, bool *gameRunning) {
   UpdateGameObjectPosition(player->gameObject, position);
 
   *gameRunning = true;
-}
-
-void UpdateProjectiles(List *projectiles) {
-  for (int i = 0; i < projectiles->length; ++i) {
-    Projectile *projectile = projectiles->data[i];
-
-    if (projectile == NULL)
-      continue;
-
-    MoveProjectile(projectile);
-
-    if (OutOfBoundsGameObject(projectile->gameObject->position)) {
-      free(projectile);
-      projectiles->data[i] = NULL;
-    }
-  }
-}
-
-void RenderProjectiles(List *projectiles) {
-  for (int i = 0; i < projectiles->length; ++i) {
-    Projectile *projectile = (Projectile*)projectiles->data[i];
-    if (projectile == NULL)
-      continue;
-
-    RenderGameObject(*projectile->gameObject);
-  }
 }
 
 int main() {
@@ -457,7 +505,7 @@ int main() {
       //----------------------------------------------------------------------------------
       
       // Projectiles Update 
-      UpdateProjectiles(&projectiles); 
+      UpdateProjectiles(&projectiles, &asteroids, player); 
       //----------------------------------------------------------------------------------
 
       // Timers based logic 
