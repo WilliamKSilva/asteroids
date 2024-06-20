@@ -51,6 +51,10 @@ typedef struct {
 } Asteroid;
 
 typedef struct {
+  GameObject *gameObject;
+} Projectile;
+
+typedef struct {
   int length;
   void** data;
 } List;
@@ -121,6 +125,14 @@ void UpdateGameObjectPosition(GameObject *gameObject, Vector2 position) {
     gameObject->texturePro->destRec.y = gameObject->position.y;
     return;
   }
+}
+
+bool OutOfBoundsGameObject(Vector2 position) {
+  return 
+    position.x > 1920 ||
+    position.x < 0 ||
+    position.y > 1080 ||
+    position.y < 0;
 }
 
 Player BuildPlayer(GameObject *gameObject) {
@@ -271,6 +283,39 @@ bool OutOfBoundsAsteroid(Asteroid asteroid) {
   return false;
 }
 
+Projectile* BuildProjectile(GameObject *gameObject) {
+  Projectile *projectile = malloc(sizeof(Projectile)); 
+  projectile->gameObject = gameObject;
+
+  return projectile;
+}
+
+void SpawnProjectile(List *projectiles, Vector2 playerPosition, float playerRotation) {
+  if (IsKeyPressed(KEY_SPACE)) {
+    float xAxisPosition = playerPosition.x + (sin(playerRotation * DEG2RAD) * 70); 
+    float yAxisPosition = playerPosition.y - (cos(playerRotation * DEG2RAD) * 70); 
+    Vector2 position = {
+      .x = xAxisPosition,
+      .y = yAxisPosition
+    };
+
+    GameObject *gameObject = BuildGameObject(position, "./assets/projectile.png"); 
+    gameObject->texturePro->rotation = playerRotation;
+    Projectile *projectile = BuildProjectile(gameObject);
+
+    if (projectiles->length == 0) {
+      projectiles->length++;
+      projectiles->data = malloc(sizeof(Asteroid*));
+      projectiles->data[0] = projectile;
+      return;
+    }
+
+    projectiles->length++;
+    projectiles->data = realloc(projectiles->data, projectiles->length * sizeof(Asteroid*));
+    projectiles->data[projectiles->length - 1] = projectile;
+  }
+}
+
 void RestartGameState(List *asteroids, Player *player, bool *gameRunning) {
   // Reset asteroids
   for (int i = 0; i < asteroids->length; i++) {
@@ -321,6 +366,11 @@ int main() {
     .data = NULL,
   };
 
+  List projectilesList = {
+    .length = 0,
+    .data = NULL,
+  };
+
   while (!WindowShouldClose()) // Detect window close button or ESC key
   {
     // TODO: Update should be framerate independent
@@ -329,14 +379,8 @@ int main() {
     if (gameRunning) {
       // Input
       MovePlayer(&player);
-
-      // Spawn
-      if (TimerDone(asteroidSpawnTimer)) {
-        SpawnAsteroid(&asteroidsList); 
-        ResetTimer(&asteroidSpawnTimer);
-        StartTimer(&asteroidSpawnTimer, ASTEROID_SPAWN_TIME);
-        continue;
-      }
+      SpawnProjectile(&projectilesList, player.gameObject->position, player.gameObject->texturePro->rotation);
+      //----------------------------------------------------------------------------------
 
       // Asteroids Logic 
       for (int i = 0; i < asteroidsList.length; i++) {
@@ -362,10 +406,34 @@ int main() {
           asteroidsList.data[i] = NULL;
         }
       }
+      //----------------------------------------------------------------------------------
+      
+      // Projectile Logic 
+      for (int i = 0; i < projectilesList.length; i++) {
+        Asteroid *projectile = projectilesList.data[i];
+        if (projectile == NULL)
+          continue;
+
+        if (OutOfBoundsGameObject(projectile->gameObject->position)) {
+          free(projectile);
+          projectilesList.data[i] = NULL;
+        }
+      }
+      //----------------------------------------------------------------------------------
+
+      // Spawn
+      if (TimerDone(asteroidSpawnTimer)) {
+        SpawnAsteroid(&asteroidsList); 
+        ResetTimer(&asteroidSpawnTimer);
+        StartTimer(&asteroidSpawnTimer, ASTEROID_SPAWN_TIME);
+        continue;
+      }
+      //----------------------------------------------------------------------------------
     } else {
       if (IsKeyPressed(KEY_ENTER))
         RestartGameState(&asteroidsList, &player, &gameRunning);
     }
+    //----------------------------------------------------------------------------------
 
     // Draw
     //----------------------------------------------------------------------------------
@@ -373,14 +441,24 @@ int main() {
         if (gameRunning) {
           ClearBackground(BLACK);
           RenderGameObject(*player.gameObject);
+          // Asteroid Render
           for (int j = 0; j < asteroidsList.length; j++) {
             Asteroid *asteroid = (Asteroid*)asteroidsList.data[j];
-
             if (asteroid == NULL)
               continue;
 
             RenderGameObject(*asteroid->gameObject);
           }
+          //----------------------------------------------------------------------------------
+          // Projectile Render
+          for (int j = 0; j < projectilesList.length; j++) {
+            Projectile *projectile = (Projectile*)projectilesList.data[j];
+            if (projectile == NULL)
+              continue;
+
+            RenderGameObject(*projectile->gameObject);
+          }
+          //----------------------------------------------------------------------------------
         } else {
           DrawText("Game Over - Press Enter to restart", 1920 / 2 - 320, 1080 / 2 - 100, 31, RED);
         }
