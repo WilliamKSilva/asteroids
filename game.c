@@ -4,6 +4,7 @@
 #include <time.h>
 #include "raylib.h"
 #include "timer.h"
+#include "array.h"
 
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
@@ -55,23 +56,12 @@ typedef struct {
   GameObject *gameObject;
 } Projectile;
 
-typedef struct {
-  int length;
-  void** data;
-} List;
-
 const int asteroidSpawnLimit = RIGHT - TOP; 
 
 int RandomNumber(int limit) {
   srand(time(NULL));
 
   return (rand() % limit) + 1;
-}
-
-void FreePtr(void *ptr) {
-  printf("FreePtr: %p\n", ptr);
-  free(ptr);
-  ptr = NULL;
 }
 
 GameObject* BuildGameObject(Vector2 position, const char* spritePath) {
@@ -232,7 +222,7 @@ void MoveAsteroid(Asteroid *asteroid) {
   }
 }
 
-void SpawnAsteroid(List *asteroids) {
+void SpawnAsteroid(Array **asteroids) {
   Vector2 position;
   GameObject *gameObject = BuildGameObject(position, "./assets/asteroid.png");
   Asteroid *asteroid = BuildAsteroid(gameObject);
@@ -262,15 +252,8 @@ void SpawnAsteroid(List *asteroids) {
 
   UpdateGameObjectPosition(asteroid->gameObject, position);
 
-  if (asteroids->length == 0) {
-    asteroids->data = malloc(sizeof(Asteroid*));
-    asteroids->data[0] = asteroid;
-    asteroids->length++;
-  } else {
-    asteroids->length++;
-    asteroids->data = realloc(asteroids->data, sizeof(Asteroid*) * asteroids->length);
-    asteroids->data[asteroids->length - 1] = asteroid;
-  }
+  (*asteroids)->bytes = ((*asteroids)->length + 1) * sizeof(Asteroid*);
+  *asteroids = PushToArray(asteroids, asteroid);
 }
 
 bool OutOfBoundsAsteroid(Asteroid asteroid) {
@@ -297,7 +280,7 @@ Projectile* BuildProjectile(GameObject *gameObject) {
   return projectile;
 }
 
-void UpdateAsteroids(List *asteroids, Player player, bool *gameRunning) {
+void UpdateAsteroids(Array *asteroids, Player player, bool *gameRunning) {
   for (int i = 0; i < asteroids->length; i++) {
     Asteroid *asteroid = asteroids->data[i];
     if (asteroid == NULL)
@@ -312,7 +295,7 @@ void UpdateAsteroids(List *asteroids, Player player, bool *gameRunning) {
     if (asteroidAndPlayerCollision) {
       free(asteroid);
       asteroids->data[i] = NULL;
-      *gameRunning = false;
+      // *gameRunning = false;
       break;
     }
 
@@ -323,7 +306,7 @@ void UpdateAsteroids(List *asteroids, Player player, bool *gameRunning) {
   }
 }
 
-Asteroid* CheckAsteroidsCollision(List *asteroids, Rectangle objectToBeChecked) {
+Asteroid* CheckAsteroidsCollision(Array *asteroids, Rectangle objectToBeChecked) {
   for (int i = 0; i < asteroids->length; ++i) {
     Asteroid *asteroid = asteroids->data[i]; 
 
@@ -343,7 +326,7 @@ Asteroid* CheckAsteroidsCollision(List *asteroids, Rectangle objectToBeChecked) 
   return NULL;
 }
 
-void RenderAsteroids(List *asteroids) {
+void RenderAsteroids(Array *asteroids) {
   for (int i = 0; i < asteroids->length; ++i) {
     Asteroid *asteroid = (Asteroid*)asteroids->data[i];
 
@@ -354,7 +337,7 @@ void RenderAsteroids(List *asteroids) {
   }
 }
 
-void SpawnProjectile(List *projectiles, Vector2 playerPosition, float playerRotation) {
+void SpawnProjectile(Array *projectiles, Vector2 playerPosition, float playerRotation) {
   if (IsKeyPressed(KEY_SPACE)) {
     float xAxisPosition = playerPosition.x + (sin(playerRotation * DEG2RAD) * 70); 
     float yAxisPosition = playerPosition.y - (cos(playerRotation * DEG2RAD) * 70); 
@@ -387,7 +370,7 @@ void MoveProjectile(Projectile *projectile) {
   UpdateGameObjectPosition(projectile->gameObject, newPosition);
 }
 
-void UpdateProjectiles(List *projectiles, List* asteroids, Player player) {
+void UpdateProjectiles(Array *projectiles, Array* asteroids, Player player) {
   for (int i = 0; i < projectiles->length; ++i) {
     Projectile *projectile = projectiles->data[i];
 
@@ -423,7 +406,7 @@ void UpdateProjectiles(List *projectiles, List* asteroids, Player player) {
   }
 }
 
-void RenderProjectiles(List *projectiles) {
+void RenderProjectiles(Array *projectiles) {
   for (int i = 0; i < projectiles->length; ++i) {
     Projectile *projectile = (Projectile*)projectiles->data[i];
 
@@ -434,7 +417,7 @@ void RenderProjectiles(List *projectiles) {
   }
 }
 
-void RestartGameState(List *asteroids, Player *player, bool *gameRunning) {
+void RestartGameState(Array *asteroids, Player *player, bool *gameRunning) {
   // Reset asteroids
   for (int i = 0; i < asteroids->length; i++) {
     if (asteroids->data[i] == NULL)
@@ -479,12 +462,11 @@ int main() {
   };
   StartTimer(&asteroidSpawnTimer, ASTEROID_SPAWN_TIME);
 
-  List asteroids = {
-    .length = 0,
-    .data = NULL,
-  };
+  Array *asteroids = malloc(sizeof(Array));
+  asteroids->length = 0;
+  asteroids->data = NULL;
 
-  List projectiles = {
+  Array projectiles = {
     .length = 0,
     .data = NULL,
   };
@@ -501,11 +483,11 @@ int main() {
       //----------------------------------------------------------------------------------
 
       // Asteroids Update 
-      UpdateAsteroids(&asteroids, player, &gameRunning); 
+      UpdateAsteroids(asteroids, player, &gameRunning); 
       //----------------------------------------------------------------------------------
       
       // Projectiles Update 
-      UpdateProjectiles(&projectiles, &asteroids, player); 
+      UpdateProjectiles(&projectiles, asteroids, player); 
       //----------------------------------------------------------------------------------
 
       // Timers based logic 
@@ -518,7 +500,7 @@ int main() {
       //----------------------------------------------------------------------------------
     } else {
       if (IsKeyPressed(KEY_ENTER))
-        RestartGameState(&asteroids, &player, &gameRunning);
+        RestartGameState(asteroids, &player, &gameRunning);
     }
     //----------------------------------------------------------------------------------
 
@@ -533,7 +515,7 @@ int main() {
           //----------------------------------------------------------------------------------
 
           // Asteroid Render
-          RenderAsteroids(&asteroids); 
+          RenderAsteroids(asteroids); 
           //----------------------------------------------------------------------------------
       
           // Projectile Render
