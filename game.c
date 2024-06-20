@@ -12,6 +12,7 @@
 #define PLAYER_DRAG_SPEED 0.2
 #define ASTEROID_SPEED 7.0
 #define ASTEROID_SPAWN_TIME 2.0
+#define PROJECTILE_SPEED 20.0
 
 typedef struct {
   int centerX;
@@ -316,6 +317,13 @@ void SpawnProjectile(List *projectiles, Vector2 playerPosition, float playerRota
   }
 }
 
+void MoveProjectile(Projectile *projectile) {
+  Vector2 newPosition = projectile->gameObject->position;
+  newPosition.x += sin(projectile->gameObject->texturePro->rotation * DEG2RAD) * PROJECTILE_SPEED;
+  newPosition.y -= cos(projectile->gameObject->texturePro->rotation * DEG2RAD) * PROJECTILE_SPEED;
+  UpdateGameObjectPosition(projectile->gameObject, newPosition);
+}
+
 void RestartGameState(List *asteroids, Player *player, bool *gameRunning) {
   // Reset asteroids
   for (int i = 0; i < asteroids->length; i++) {
@@ -410,9 +418,11 @@ int main() {
       
       // Projectile Logic 
       for (int i = 0; i < projectilesList.length; i++) {
-        Asteroid *projectile = projectilesList.data[i];
+        Projectile *projectile = projectilesList.data[i];
         if (projectile == NULL)
           continue;
+
+        MoveProjectile(projectile);
 
         if (OutOfBoundsGameObject(projectile->gameObject->position)) {
           free(projectile);
@@ -421,7 +431,7 @@ int main() {
       }
       //----------------------------------------------------------------------------------
 
-      // Spawn
+      // Timer logic 
       if (TimerDone(asteroidSpawnTimer)) {
         SpawnAsteroid(&asteroidsList); 
         ResetTimer(&asteroidSpawnTimer);
