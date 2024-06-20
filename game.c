@@ -291,6 +291,42 @@ Projectile* BuildProjectile(GameObject *gameObject) {
   return projectile;
 }
 
+void UpdateAsteroids(List *asteroids, Player player, bool *gameRunning) {
+  for (int i = 0; i < asteroids->length; i++) {
+    Asteroid *asteroid = asteroids->data[i];
+    if (asteroid == NULL)
+      continue;
+
+    MoveAsteroid(asteroid);
+    bool asteroidAndPlayerCollision = CheckCollisionRecs(
+      asteroid->gameObject->texturePro->destRec,
+      player.gameObject->texturePro->destRec
+    );
+
+    if (asteroidAndPlayerCollision) {
+      free(asteroid);
+      asteroids->data[i] = NULL;
+      *gameRunning = false;
+      break;
+    }
+
+    if (OutOfBoundsAsteroid(*asteroid)) {
+      free(asteroid);
+      asteroids->data[i] = NULL;
+    }
+  }
+}
+
+void RenderAsteroids(List *asteroids) {
+  for (int i = 0; i < asteroids->length; ++i) {
+    Asteroid *asteroid = (Asteroid*)asteroids->data[i];
+    if (asteroid == NULL)
+      continue;
+
+    RenderGameObject(*asteroid->gameObject);
+  }
+}
+
 void SpawnProjectile(List *projectiles, Vector2 playerPosition, float playerRotation) {
   if (IsKeyPressed(KEY_SPACE)) {
     float xAxisPosition = playerPosition.x + (sin(playerRotation * DEG2RAD) * 70); 
@@ -348,6 +384,32 @@ void RestartGameState(List *asteroids, Player *player, bool *gameRunning) {
   *gameRunning = true;
 }
 
+void UpdateProjectiles(List *projectiles) {
+  for (int i = 0; i < projectiles->length; ++i) {
+    Projectile *projectile = projectiles->data[i];
+
+    if (projectile == NULL)
+      continue;
+
+    MoveProjectile(projectile);
+
+    if (OutOfBoundsGameObject(projectile->gameObject->position)) {
+      free(projectile);
+      projectiles->data[i] = NULL;
+    }
+  }
+}
+
+void RenderProjectiles(List *projectiles) {
+  for (int i = 0; i < projectiles->length; ++i) {
+    Projectile *projectile = (Projectile*)projectiles->data[i];
+    if (projectile == NULL)
+      continue;
+
+    RenderGameObject(*projectile->gameObject);
+  }
+}
+
 int main() {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Asteroids");
   SetTargetFPS(60);
@@ -369,12 +431,12 @@ int main() {
   };
   StartTimer(&asteroidSpawnTimer, ASTEROID_SPAWN_TIME);
 
-  List asteroidsList = {
+  List asteroids = {
     .length = 0,
     .data = NULL,
   };
 
-  List projectilesList = {
+  List projectiles = {
     .length = 0,
     .data = NULL,
   };
@@ -387,53 +449,20 @@ int main() {
     if (gameRunning) {
       // Input
       MovePlayer(&player);
-      SpawnProjectile(&projectilesList, player.gameObject->position, player.gameObject->texturePro->rotation);
+      SpawnProjectile(&projectiles, player.gameObject->position, player.gameObject->texturePro->rotation);
       //----------------------------------------------------------------------------------
 
-      // Asteroids Logic 
-      for (int i = 0; i < asteroidsList.length; i++) {
-        Asteroid *asteroid = asteroidsList.data[i];
-        if (asteroid == NULL)
-          continue;
-
-        MoveAsteroid(asteroid);
-        bool asteroidAndPlayerCollision = CheckCollisionRecs(
-          asteroid->gameObject->texturePro->destRec,
-          player.gameObject->texturePro->destRec
-        );
-
-        if (asteroidAndPlayerCollision) {
-          free(asteroid);
-          asteroidsList.data[i] = NULL;
-          gameRunning = false;
-          break;
-        }
-
-        if (OutOfBoundsAsteroid(*asteroid)) {
-          free(asteroid);
-          asteroidsList.data[i] = NULL;
-        }
-      }
+      // Asteroids Update 
+      UpdateAsteroids(&asteroids, player, &gameRunning); 
       //----------------------------------------------------------------------------------
       
-      // Projectile Logic 
-      for (int i = 0; i < projectilesList.length; i++) {
-        Projectile *projectile = projectilesList.data[i];
-        if (projectile == NULL)
-          continue;
-
-        MoveProjectile(projectile);
-
-        if (OutOfBoundsGameObject(projectile->gameObject->position)) {
-          free(projectile);
-          projectilesList.data[i] = NULL;
-        }
-      }
+      // Projectiles Update 
+      UpdateProjectiles(&projectiles); 
       //----------------------------------------------------------------------------------
 
-      // Timer logic 
+      // Timers based logic 
       if (TimerDone(asteroidSpawnTimer)) {
-        SpawnAsteroid(&asteroidsList); 
+        SpawnAsteroid(&asteroids); 
         ResetTimer(&asteroidSpawnTimer);
         StartTimer(&asteroidSpawnTimer, ASTEROID_SPAWN_TIME);
         continue;
@@ -441,7 +470,7 @@ int main() {
       //----------------------------------------------------------------------------------
     } else {
       if (IsKeyPressed(KEY_ENTER))
-        RestartGameState(&asteroidsList, &player, &gameRunning);
+        RestartGameState(&asteroids, &player, &gameRunning);
     }
     //----------------------------------------------------------------------------------
 
@@ -450,24 +479,17 @@ int main() {
       BeginDrawing();
         if (gameRunning) {
           ClearBackground(BLACK);
+
+          // Player Render
           RenderGameObject(*player.gameObject);
-          // Asteroid Render
-          for (int j = 0; j < asteroidsList.length; j++) {
-            Asteroid *asteroid = (Asteroid*)asteroidsList.data[j];
-            if (asteroid == NULL)
-              continue;
-
-            RenderGameObject(*asteroid->gameObject);
-          }
           //----------------------------------------------------------------------------------
-          // Projectile Render
-          for (int j = 0; j < projectilesList.length; j++) {
-            Projectile *projectile = (Projectile*)projectilesList.data[j];
-            if (projectile == NULL)
-              continue;
 
-            RenderGameObject(*projectile->gameObject);
-          }
+          // Asteroid Render
+          RenderAsteroids(&asteroids); 
+          //----------------------------------------------------------------------------------
+      
+          // Projectile Render
+          RenderProjectiles(&projectiles); 
           //----------------------------------------------------------------------------------
         } else {
           DrawText("Game Over - Press Enter to restart", 1920 / 2 - 320, 1080 / 2 - 100, 31, RED);
