@@ -10,11 +10,8 @@ typedef struct {
   size_t bytes;
 } Array;
 
-Array *PushToArray(Array **array, void *value) {
+Array *PushAsteroid(Array **array, Asteroid *asteroid) {
   Array *newArr = (Array*)malloc(sizeof(Array)); 
-  // Dont know a way yet to call sizeof for generic data type
-  // so this approach works for now since we cant know the type
-  // of the value that is being passed
   newArr->data = (void**)malloc((*array)->bytes);
 
   for (int i = 0; i < (*array)->length; ++i) {

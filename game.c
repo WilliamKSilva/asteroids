@@ -4,7 +4,6 @@
 #include <time.h>
 #include "raylib.h"
 #include "timer.h"
-#include "array.h"
 
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
@@ -56,12 +55,56 @@ typedef struct {
   GameObject *gameObject;
 } Projectile;
 
+typedef struct {
+  int length;
+  void** data;
+  size_t bytes;
+} Array;
+
 const int asteroidSpawnLimit = RIGHT - TOP; 
 
 int RandomNumber(int limit) {
   srand(time(NULL));
 
   return (rand() % limit) + 1;
+}
+
+Array *PushAsteroid(Array **asteroids, Asteroid *asteroid) {
+  Array *newArr = (Array*)malloc(sizeof(Array)); 
+  newArr->length = (*asteroids)->length + 1;
+  newArr->data = malloc(newArr->length * sizeof(Asteroid*));
+
+  for (int i = 0; i < (*asteroids)->length; ++i) {
+    newArr->data[i] = (*asteroids)->data[i];
+  }
+
+  free((*asteroids)->data);
+  free(*asteroids);
+  *asteroids = NULL;
+
+  newArr->data[newArr->length - 1] = asteroid;
+
+  return newArr;
+}
+
+Array *RemoveAsteroid(Array **asteroids, int index) {
+  Array *newArr = (Array*)malloc(sizeof(Array)); 
+  newArr->length = (*asteroids)->length - 1;
+  newArr->data = malloc(newArr->length * sizeof(Asteroid*));
+
+  for (int i = 0; i < (*asteroids)->length; ++i) {
+    if (index == i) {
+      continue;
+    }
+
+    newArr->data[i] = (*asteroids)->data[i];
+  }
+
+  free((*asteroids)->data);
+  free(*asteroids);
+  *asteroids = NULL;
+
+  return newArr;
 }
 
 GameObject* BuildGameObject(Vector2 position, const char* spritePath) {
@@ -252,8 +295,7 @@ void SpawnAsteroid(Array **asteroids) {
 
   UpdateGameObjectPosition(asteroid->gameObject, position);
 
-  (*asteroids)->bytes = ((*asteroids)->length + 1) * sizeof(Asteroid*);
-  *asteroids = PushToArray(asteroids, asteroid);
+  *asteroids = PushAsteroid(asteroids, asteroid);
 }
 
 bool OutOfBoundsAsteroid(Asteroid asteroid) {
@@ -280,9 +322,9 @@ Projectile* BuildProjectile(GameObject *gameObject) {
   return projectile;
 }
 
-void UpdateAsteroids(Array *asteroids, Player player, bool *gameRunning) {
-  for (int i = 0; i < asteroids->length; i++) {
-    Asteroid *asteroid = asteroids->data[i];
+void UpdateAsteroids(Array **asteroids, Player player, bool *gameRunning) {
+  for (int i = 0; i < (*asteroids)->length; i++) {
+    Asteroid *asteroid = (*asteroids)->data[i];
     if (asteroid == NULL)
       continue;
 
@@ -293,15 +335,13 @@ void UpdateAsteroids(Array *asteroids, Player player, bool *gameRunning) {
     );
 
     if (asteroidAndPlayerCollision) {
-      free(asteroid);
-      asteroids->data[i] = NULL;
+      *asteroids = RemoveAsteroid(asteroids, i);
       // *gameRunning = false;
       break;
     }
 
     if (OutOfBoundsAsteroid(*asteroid)) {
-      free(asteroid);
-      asteroids->data[i] = NULL;
+      *asteroids = RemoveAsteroid(asteroids, i);
     }
   }
 }
@@ -483,7 +523,7 @@ int main() {
       //----------------------------------------------------------------------------------
 
       // Asteroids Update 
-      UpdateAsteroids(asteroids, player, &gameRunning); 
+      UpdateAsteroids(&asteroids, player, &gameRunning); 
       //----------------------------------------------------------------------------------
       
       // Projectiles Update 
