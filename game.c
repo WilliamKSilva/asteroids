@@ -4,6 +4,8 @@
 #include <time.h>
 #include "raylib.h"
 #include "timer.h"
+#include "array.h"
+#include "game.h"
 
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
@@ -14,97 +16,12 @@
 #define ASTEROID_SPAWN_TIME 2.0
 #define PROJECTILE_SPEED 20.0
 
-typedef struct {
-  int centerX;
-  int centerY;
-  float radius;
-  Color color;
-} Circle;
-
-typedef struct {
-  Rectangle sourceRec;
-  Rectangle destRec;
-  Vector2 origin;
-  float rotation;
-} TexturePro;
-
-typedef struct {
-  Vector2 position;
-  Texture2D *sprite;
-  TexturePro *texturePro;
-} GameObject;
-
-typedef struct {
-  GameObject *gameObject;
-  float speed;
-} Player;
-
-typedef enum {
-  TOP,
-  BOTTOM,
-  LEFT,
-  RIGHT
-} AsteroidSpawn;
-
-typedef struct {
-  GameObject *gameObject;
-  AsteroidSpawn spawn;
-} Asteroid;
-
-typedef struct {
-  GameObject *gameObject;
-} Projectile;
-
-typedef struct {
-  int length;
-  void** data;
-  size_t bytes;
-} Array;
-
 const int asteroidSpawnLimit = RIGHT - TOP; 
 
 int RandomNumber(int limit) {
   srand(time(NULL));
 
   return (rand() % limit) + 1;
-}
-
-Array *PushAsteroid(Array **asteroids, Asteroid *asteroid) {
-  Array *newArr = (Array*)malloc(sizeof(Array)); 
-  newArr->length = (*asteroids)->length + 1;
-  newArr->data = malloc(newArr->length * sizeof(Asteroid*));
-
-  for (int i = 0; i < (*asteroids)->length; ++i) {
-    newArr->data[i] = (*asteroids)->data[i];
-  }
-
-  free((*asteroids)->data);
-  free(*asteroids);
-  *asteroids = NULL;
-
-  newArr->data[newArr->length - 1] = asteroid;
-
-  return newArr;
-}
-
-Array *RemoveAsteroid(Array **asteroids, int index) {
-  Array *newArr = (Array*)malloc(sizeof(Array)); 
-  newArr->length = (*asteroids)->length - 1;
-  newArr->data = malloc(newArr->length * sizeof(Asteroid*));
-
-  for (int i = 0; i < (*asteroids)->length; ++i) {
-    if (index == i) {
-      continue;
-    }
-
-    newArr->data[i] = (*asteroids)->data[i];
-  }
-
-  free((*asteroids)->data);
-  free(*asteroids);
-  *asteroids = NULL;
-
-  return newArr;
 }
 
 GameObject* BuildGameObject(Vector2 position, const char* spritePath) {
@@ -504,7 +421,7 @@ int main() {
 
   Array *asteroids = malloc(sizeof(Array));
   asteroids->length = 0;
-  asteroids->data = NULL;
+  asteroids->data = malloc(sizeof(Asteroid*));
 
   Array projectiles = {
     .length = 0,
