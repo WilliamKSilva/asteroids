@@ -15,6 +15,12 @@ using namespace std;
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
 
+void resetState(Player &player, vector<Asteroid> &asteroids, vector<Projectile> &projectiles) {
+	player.resetPosition();
+	asteroids.clear();
+	projectiles.clear();
+}
+
 void update(bool &isGameRunning, Player &player, vector<Asteroid> &asteroids, vector<Projectile> &projectiles, Timer &asteroidSpawnTimer)
 {
 	/* Player */
@@ -32,10 +38,20 @@ void update(bool &isGameRunning, Player &player, vector<Asteroid> &asteroids, ve
 		asteroid.move();
 
 		bool hasCollidedWithPlayer = asteroid.checkCollision(player.texturePro.destRec);
-		if (hasCollidedWithPlayer) {
+
+		if (hasCollidedWithPlayer && player.lifes > 0) {
 			player.lifes--;
 			player.score = 0;
-			isGameRunning = false;
+			resetState(player, asteroids, projectiles);
+
+			if (player.lifes == 0) {
+				isGameRunning = false;
+				player.lifes = 5;
+			}
+
+			cout << player.lifes << endl;
+
+			return;
 		}
 
 		if (asteroid.isOutOfBounds()) {
@@ -93,12 +109,6 @@ void renderObjects(Player player, vector<Asteroid> &asteroids, vector<Projectile
 		Projectile &projectile = projectiles[i];
 		projectile.render();
 	}
-}
-
-void resetState(Player &player, vector<Asteroid> &asteroids, vector<Projectile> &projectiles) {
-	player.resetPosition();
-	asteroids.clear();
-	projectiles.clear();
 }
 
 int main()
