@@ -2,13 +2,13 @@
 #include <math.h>
 #include <time.h>
 #include "raylib.h"
-#include "timer.hpp"
+#include "timer.h"
 #include <memory>
 #include <vector>
-#include "gameObject.hpp"
-#include "player.hpp"
-#include "asteroid.hpp"
-#include "projectile.hpp"
+#include "gameObject.h"
+#include "player.h"
+#include "asteroid.h"
+#include "projectile.h"
 
 using namespace std;
 
@@ -48,8 +48,6 @@ void update(bool &isGameRunning, Player &player, vector<Asteroid> &asteroids, ve
 				isGameRunning = false;
 				player.lifes = 5;
 			}
-
-			cout << player.lifes << endl;
 
 			return;
 		}
