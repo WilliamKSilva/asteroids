@@ -2,33 +2,38 @@
 #define TIMER
 #include "raylib.h"
 
-typedef struct Timer {
-    double startTime;   // Start time (seconds)
-    double lifeTime;    // Lifetime (seconds)
-    bool started;
-} Timer;
-
-void StartTimer(Timer *timer, double lifetime)
+class Timer
 {
-    timer->startTime = GetTime();
-    timer->lifeTime = lifetime;
-    timer->started = true;
-}
+public:
+    double startTime; // Start time (seconds)
+    double lifeTime;  // Lifetime (seconds)
+    bool started = false;
 
-void ResetTimer(Timer *timer)
-{
-	timer->startTime = 0.0;
-	timer->lifeTime = 0.0;
-	timer->started = false;
-}
+    Timer(double lifetime)
+    {
+        this->lifeTime = lifetime;
+    }
 
-bool TimerDone(Timer timer)
-{
-    return GetTime() - timer.startTime >= timer.lifeTime;
-}
+    void start() {
+        startTime = GetTime();
+        started = true;
+    }
 
-double GetElapsed(Timer timer)
-{
-    return GetTime() - timer.startTime;
-}
+    void reset(double lifetime)
+    {
+        this->startTime = 0.0;
+        this->lifeTime = lifetime;
+        this->started = false;
+    }
+
+    bool isDone()
+    {
+        return GetTime() - startTime >= lifeTime;
+    }
+
+    double getElapsed()
+    {
+        return GetTime() - startTime;
+    }
+};
 #endif
