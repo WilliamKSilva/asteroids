@@ -2,5 +2,6 @@ CC = g++
 CFLAGS = -Wall
 BUILD = ./build/
 RAYLIB_PATH=/usr/local/lib/
+FILES = ./src/*.cpp
 asteroids:
-	$(CC) -o $(BUILD)asteroids game.cpp gameObject.cpp asteroid.cpp random.cpp player.cpp projectile.cpp text.cpp timer.cpp $(RAYLIB_PATH)libraylib.a -lGL -lm -lpthread -ldl -lrt -lX11
+	$(CC) -o $(BUILD)asteroids $(FILES) $(RAYLIB_PATH)libraylib.a -lGL -lm -lpthread -ldl -lrt -lX11
