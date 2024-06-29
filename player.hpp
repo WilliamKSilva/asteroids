@@ -61,6 +61,13 @@ public:
 			updatePosition(newPosition);
 		}
 	}
+
+	void resetPosition() {
+		Vector2 initialPosition;
+		initialPosition.x = 1920 / 2.0;
+		initialPosition.y = 1080 / 2.0;
+		updatePosition(initialPosition);
+	}
 };
 
 #endif

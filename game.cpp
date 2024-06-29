@@ -31,6 +31,10 @@ void update(bool &isGameRunning, Player &player, vector<Asteroid> &asteroids, ve
 		Asteroid &asteroid = asteroids[i];
 		asteroid.move();
 
+		bool hasCollidedWithPlayer = asteroid.checkCollision(player.texturePro.destRec);
+		if (hasCollidedWithPlayer)
+			isGameRunning = false;
+
 		if (asteroid.isOutOfBounds()) {
 			asteroids.erase(asteroids.begin() + i);
 		}
@@ -87,6 +91,12 @@ void render(Player player, vector<Asteroid> &asteroids, vector<Projectile> &proj
 	}
 }
 
+void resetState(Player &player, vector<Asteroid> &asteroids, vector<Projectile> &projectiles) {
+	player.resetPosition();
+	asteroids.clear();
+	projectiles.clear();
+}
+
 int main()
 {
 	InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Asteroids");
@@ -105,6 +115,11 @@ int main()
 		if (isGameRunning)
 		{
 			update(isGameRunning, player, asteroids, projectiles, asteroidSpawnTimer);
+		} else {
+			if (IsKeyPressed(KEY_ENTER)) {
+				resetState(player, asteroids, projectiles);
+				isGameRunning = true;
+			}
 		}
 		//----------------------------------------------------------------------------------
 
