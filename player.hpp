@@ -1,23 +1,44 @@
 #ifndef PLAYER
 #define PLAYER
 
+#include <iostream>
 #include "raylib.h"
 #include "math.h"
 #include "gameObject.hpp"
-#include <iostream>
+#include "text.hpp"
 
 using namespace std;
 
 class Player : public GameObject
 {
 public:
+	Player(Vector2 position) : GameObject(position, "./assets/player.png"){};
+
 	float playerMaxSpeed = 10.0;
 	float playerImpulseSpeed = 0.6;
 	float playerDragSpeed = 0.2;
 
 	float speed = 0.0;
+	size_t score = 0;
+	size_t lifes = 5;
 
-	Player(Vector2 position) : GameObject(position, "./assets/player.png"){};
+	Text scoreText = Text(
+		"Score: ",
+		{
+			.x = 20,
+			.y = 20,
+		},
+		21,
+		WHITE);
+
+	Text lifesText = Text(
+		"Lifes: ",
+		{
+			.x = 20,
+			.y = 40,
+		},
+		21,
+		RED);
 
 	void move()
 	{
@@ -62,11 +83,21 @@ public:
 		}
 	}
 
-	void resetPosition() {
+	void resetPosition()
+	{
 		Vector2 initialPosition;
 		initialPosition.x = 1920 / 2.0;
 		initialPosition.y = 1080 / 2.0;
 		updatePosition(initialPosition);
+	}
+
+	void renderStats()
+	{
+		scoreText.content.append(to_string(score));
+		lifesText.content.append(to_string(lifes));
+
+		scoreText.render();
+		lifesText.render();
 	}
 };
 

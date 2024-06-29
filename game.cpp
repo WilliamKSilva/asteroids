@@ -2,7 +2,7 @@
 #include <math.h>
 #include <time.h>
 #include "raylib.h"
-#include "timer.h"
+#include "timer.hpp"
 #include <memory>
 #include <vector>
 #include "gameObject.hpp"
@@ -32,8 +32,11 @@ void update(bool &isGameRunning, Player &player, vector<Asteroid> &asteroids, ve
 		asteroid.move();
 
 		bool hasCollidedWithPlayer = asteroid.checkCollision(player.texturePro.destRec);
-		if (hasCollidedWithPlayer)
+		if (hasCollidedWithPlayer) {
+			player.lifes--;
+			player.score = 0;
 			isGameRunning = false;
+		}
 
 		if (asteroid.isOutOfBounds()) {
 			asteroids.erase(asteroids.begin() + i);
@@ -74,9 +77,10 @@ void update(bool &isGameRunning, Player &player, vector<Asteroid> &asteroids, ve
 	}
 }
 
-void render(Player player, vector<Asteroid> &asteroids, vector<Projectile> &projectiles)
+void renderObjects(Player player, vector<Asteroid> &asteroids, vector<Projectile> &projectiles)
 {
 	player.render();
+	player.renderStats();
 
 	for (int i = 0; i < asteroids.size(); i++)
 	{
@@ -129,7 +133,7 @@ int main()
 		if (isGameRunning)
 		{
 			ClearBackground(BLACK);
-			render(player, asteroids, projectiles);
+			renderObjects(player, asteroids, projectiles);
 		}
 		else
 		{
