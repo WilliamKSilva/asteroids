@@ -1,12 +1,13 @@
 #include "raylib.h"
 #include <math.h>
-#include <stdio.h>
 
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080 
 
-#define PLAYER_ROTATION_SPEED 2.0
-#define PLAYER_SPEED 2.0
+#define PLAYER_ROTATION_SPEED 4.0
+#define PLAYER_IMPULSE 1.0
+#define PLAYER_MAX_IMPULSE 10.0
+#define PLAYER_DRAG 0.5 
 
 // TODO: draw my own assets
 
@@ -21,6 +22,7 @@ typedef struct {
 
 typedef struct {
   TexturePro texture;
+  float speed;
 } Player;
 
 TexturePro buildTexturePro(Vector2 startPosition, const char *spritePath) {
@@ -69,8 +71,26 @@ void movePlayer(Player *player) {
     player->texture.rotation += PLAYER_ROTATION_SPEED;
 
   if (IsKeyDown(KEY_W)) {
-    player->texture.dest.x += sin(player->texture.rotation * DEG2RAD) * PLAYER_SPEED;
-    player->texture.dest.y -= cos(player->texture.rotation * DEG2RAD) * PLAYER_SPEED;
+    if (player->speed <= PLAYER_MAX_IMPULSE)
+      player->speed += PLAYER_IMPULSE;
+
+    player->texture.dest.x += sin(player->texture.rotation * DEG2RAD) * player->speed;
+    player->texture.dest.y -= cos(player->texture.rotation * DEG2RAD) * player->speed;
+  }
+
+  if (IsKeyUp(KEY_W)) {
+    bool isDraggingBackwards = player->speed - PLAYER_DRAG < 0; 
+
+    if (isDraggingBackwards) {
+      player->speed = 0.0;
+      player->texture.dest.x += sin(player->texture.rotation * DEG2RAD) * player->speed;
+      player->texture.dest.y -= cos(player->texture.rotation * DEG2RAD) * player->speed;
+      return;
+    }
+
+    player->speed -= PLAYER_DRAG;
+    player->texture.dest.x += sin(player->texture.rotation * DEG2RAD) * player->speed;
+    player->texture.dest.y -= cos(player->texture.rotation * DEG2RAD) * player->speed;
   }
 }
 
@@ -88,7 +108,8 @@ int main() {
     .y = (float)SCREEN_HEIGHT / 2.0
   };
   Player player = {
-    .texture = buildTexturePro(playerStartPosition, "./assets/player.png")
+    .texture = buildTexturePro(playerStartPosition, "./assets/player.png"),
+    .speed = 0.0
   };
 
   while (!WindowShouldClose()) {
