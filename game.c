@@ -1,5 +1,7 @@
+#include "stdlib.h"
 #include "raylib.h"
 #include <math.h>
+#include <stdio.h>
 
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080 
@@ -7,7 +9,9 @@
 #define PLAYER_ROTATION_SPEED 4.0
 #define PLAYER_IMPULSE 1.0
 #define PLAYER_MAX_IMPULSE 10.0
-#define PLAYER_DRAG 0.5 
+#define PLAYER_DRAG 0.5
+
+#define PROJECTILE_START_POSITION_SCALE 70 
 
 // TODO: draw my own assets
 
@@ -24,6 +28,15 @@ typedef struct {
   TexturePro texture;
   float speed;
 } Player;
+
+typedef struct {
+  TexturePro texture;
+} Projectile;
+
+typedef struct {
+  Projectile *ptr;
+  int length;
+} ProjectileArray;
 
 TexturePro buildTexturePro(Vector2 startPosition, const char *spritePath) {
   Texture2D sprite = LoadTexture(spritePath);
@@ -94,9 +107,65 @@ void movePlayer(Player *player) {
   }
 }
 
-void update(Player *player) {
+void spawnProjectile(ProjectileArray *projectiles, Vector2 startPosition, float rotation) {
+  Projectile projectile = { 
+    .texture = buildTexturePro(startPosition, "./assets/projectile.png")
+  };
+
+  projectile.texture.rotation = rotation;
+
+  if (projectiles->length == 0) {
+    projectiles->ptr = malloc(sizeof(Projectile));
+
+    if (projectiles->ptr == NULL) {
+      printf("Error trying to allocate memory for projectiles\n");
+      exit(0);
+    }
+
+    projectiles->ptr[0] = projectile;
+    projectiles->length++;
+  } else {
+    projectiles->length++;
+    projectiles->ptr = realloc(projectiles->ptr, projectiles->length * sizeof(Projectile));
+
+    if (projectiles->ptr == NULL) {
+      printf("Error trying to allocate memory for projectiles\n");
+      exit(0);
+    }
+
+    projectiles->ptr[projectiles->length - 1] = projectile;
+  }
+}
+
+Vector2 getProjectileStartPosition(Player player) {
+  Vector2 position = {
+    .x = player.texture.dest.x,
+    .y = player.texture.dest.y,
+  };
+  position.x += sin(player.texture.rotation * DEG2RAD) * PROJECTILE_START_POSITION_SCALE;
+  position.y -= cos(player.texture.rotation * DEG2RAD) * PROJECTILE_START_POSITION_SCALE;
+
+  return position;
+}
+
+void shootProjectile(ProjectileArray *projectiles, Player player) {
+  if (IsKeyPressed(KEY_SPACE)) {
+    spawnProjectile(projectiles, getProjectileStartPosition(player), player.texture.rotation);
+  }
+}
+
+void update(Player *player, ProjectileArray *projectiles) {
   // Input updates
   movePlayer(player);
+  shootProjectile(projectiles, *player);
+}
+
+void render(Player player, ProjectileArray projectiles) {
+  renderTexturePro(player.texture);
+
+  for (int i = 0; i < projectiles.length; ++i) {
+    renderTexturePro(projectiles.ptr[i].texture); 
+  }
 }
 
 int main() {
@@ -112,12 +181,17 @@ int main() {
     .speed = 0.0
   };
 
+  ProjectileArray projectiles = {
+    .ptr = NULL,
+    .length = 0,
+  };
+
   while (!WindowShouldClose()) {
-    update(&player);
+    update(&player, &projectiles);
 
     BeginDrawing(); 
       ClearBackground(BLACK);
-      renderTexturePro(player.texture);
+      render(player, projectiles);
     EndDrawing();
   }
 
