@@ -1,9 +1,12 @@
 #include "raylib.h"
+#include <math.h>
+#include <stdio.h>
 
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080 
 
 #define PLAYER_ROTATION_SPEED 2.0
+#define PLAYER_SPEED 2.0
 
 // TODO: draw my own assets
 
@@ -64,6 +67,11 @@ void movePlayer(Player *player) {
 
   if (IsKeyDown(KEY_D))
     player->texture.rotation += PLAYER_ROTATION_SPEED;
+
+  if (IsKeyDown(KEY_W)) {
+    player->texture.dest.x += sin(player->texture.rotation * DEG2RAD) * PLAYER_SPEED;
+    player->texture.dest.y -= cos(player->texture.rotation * DEG2RAD) * PLAYER_SPEED;
+  }
 }
 
 void update(Player *player) {
