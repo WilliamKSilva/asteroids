@@ -3,6 +3,8 @@
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080 
 
+#define PLAYER_ROTATION_SPEED 2.0
+
 // TODO: draw my own assets
 
 typedef struct {
@@ -16,48 +18,57 @@ typedef struct {
 
 typedef struct {
   TexturePro texture;
-} GameObject;
+} Player;
 
-GameObject buildGameObject(Vector2 startPosition, const char *spritePath) {
+TexturePro buildTexturePro(Vector2 startPosition, const char *spritePath) {
   Texture2D sprite = LoadTexture(spritePath);
   TexturePro texture = {
     .color = WHITE,
     .source = {
       .x = 0.0,
       .y = 0.0,
-      .width = sprite.width,
-      .height = sprite.height
+      .width = (float)sprite.width,
+      .height = (float)sprite.height
     },
     .dest = {
       .x = startPosition.x,
       .y = startPosition.y,
-      .width = sprite.width,
-      .height = sprite.height
+      .width = (float)sprite.width,
+      .height = (float)sprite.height
     },
     .sprite = sprite,
     .origin = {
-      .x =  sprite.width / 2.0,
-      .y = sprite.height / 2.0
+      .x =  (float)sprite.width / 2.0,
+      .y = (float)sprite.height / 2.0
     },
     .rotation = 0.0
   };
 
-  GameObject gameObject = {
-    .texture = texture
-  };
-
-  return gameObject;
+  return texture;
 }
 
-void renderGameObject(GameObject gameObject) {
+void renderTexturePro(TexturePro texture) {
   DrawTexturePro(
-    gameObject.texture.sprite,
-    gameObject.texture.source,
-    gameObject.texture.dest,
-    gameObject.texture.origin,
-    gameObject.texture.rotation,
-    gameObject.texture.color 
+    texture.sprite,
+    texture.source,
+    texture.dest,
+    texture.origin,
+    texture.rotation,
+    texture.color 
   );
+}
+
+void movePlayer(Player *player) {
+  if (IsKeyDown(KEY_A))
+    player->texture.rotation -= PLAYER_ROTATION_SPEED;
+
+  if (IsKeyDown(KEY_D))
+    player->texture.rotation += PLAYER_ROTATION_SPEED;
+}
+
+void update(Player *player) {
+  // Input updates
+  movePlayer(player);
 }
 
 int main() {
@@ -68,11 +79,18 @@ int main() {
     .x = (float)SCREEN_WIDTH / 2.0,
     .y = (float)SCREEN_HEIGHT / 2.0
   };
-  GameObject player = buildGameObject(playerStartPosition, "./assets/player.png"); 
+  Player player = {
+    .texture = buildTexturePro(playerStartPosition, "./assets/player.png")
+  };
 
   while (!WindowShouldClose()) {
+    update(&player);
+
     BeginDrawing(); 
-      renderGameObject(player);
+      ClearBackground(BLACK);
+      renderTexturePro(player.texture);
     EndDrawing();
   }
+
+  return 0;
 }
