@@ -11,6 +11,7 @@
 #define PLAYER_MAX_IMPULSE 10.0
 #define PLAYER_DRAG 0.5
 
+#define PROJECTILE_SPEED 15.0
 #define PROJECTILE_START_POSITION_SCALE 70 
 
 // TODO: draw my own assets
@@ -154,10 +155,20 @@ void shootProjectile(ProjectileArray *projectiles, Player player) {
   }
 }
 
+void moveProjectile(Projectile *projectile) {
+  projectile->texture.dest.x += sin(projectile->texture.rotation * DEG2RAD) * PROJECTILE_SPEED;
+  projectile->texture.dest.y -= cos(projectile->texture.rotation * DEG2RAD) * PROJECTILE_SPEED;
+}
+
 void update(Player *player, ProjectileArray *projectiles) {
   // Input updates
   movePlayer(player);
   shootProjectile(projectiles, *player);
+
+  // Scripted updates
+  for (int i = 0; i < projectiles->length; ++i) {
+    moveProjectile(&projectiles->ptr[i]); 
+  }
 }
 
 void render(Player player, ProjectileArray projectiles) {
