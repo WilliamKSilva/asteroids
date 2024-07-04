@@ -20,10 +20,12 @@
 #define ASTEROID_SPEED 5.0
 
 // TODO: draw my own assets
+// TODO: remove element from array deleting all elements
 
 typedef struct {
   Sound explode;
   Sound shoot;
+  Sound thrust;
 } Sounds;
 
 typedef struct {
@@ -118,7 +120,7 @@ void renderTexturePro(TexturePro texture) {
   );
 }
 
-void movePlayer(Player *player) {
+void movePlayer(Player *player, Sound thrustSound) {
   if (IsKeyDown(KEY_A))
     player->texture.rotation -= PLAYER_ROTATION_SPEED;
 
@@ -126,6 +128,9 @@ void movePlayer(Player *player) {
     player->texture.rotation += PLAYER_ROTATION_SPEED;
 
   if (IsKeyDown(KEY_W)) {
+    if (!IsSoundPlaying(thrustSound))
+      PlaySound(thrustSound);
+
     if (player->speed <= PLAYER_MAX_IMPULSE)
       player->speed += PLAYER_IMPULSE;
 
@@ -351,7 +356,7 @@ void update(
   bool *isGameRunning)
 {
   // Input updates
-  movePlayer(player);
+  movePlayer(player, sounds.thrust);
   shootProjectile(projectiles, *player, sounds.shoot);
 
   // Scripted updates
@@ -435,7 +440,8 @@ int main() {
 
   Sounds sounds = {
     .shoot = LoadSound("./assets/shoot.wav"),
-    .explode = LoadSound("./assets/explode.wav")
+    .explode = LoadSound("./assets/explode.wav"),
+    .thrust = LoadSound("./assets/thrust.wav")
   };
 
   Vector2 playerStartPosition = { 
