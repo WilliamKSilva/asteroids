@@ -24,12 +24,6 @@
 // TODO: draw my own assets
 
 typedef struct {
-  Sound explode;
-  Sound shoot;
-  Sound thrust;
-} Sounds;
-
-typedef struct {
   Texture2D sprite;
   Rectangle source;
   Rectangle dest;
@@ -37,6 +31,13 @@ typedef struct {
   float rotation;
   Color color;
 } TexturePro;
+
+typedef struct {
+  Sound explode;
+  Sound shoot;
+  Sound thrust;
+  Sound asteroidDestroyed;
+} Sounds;
 
 typedef struct {
   TexturePro texture;
@@ -419,6 +420,7 @@ void update(
         deleteElementFromArray(projectiles, j);
 
         player->score += BIG_ASTEROID_SCORE;
+        PlaySound(sounds.asteroidDestroyed);
         break;
       }
     }
@@ -476,7 +478,8 @@ int main() {
   Sounds sounds = {
     .shoot = LoadSound("./assets/shoot.wav"),
     .explode = LoadSound("./assets/explode.wav"),
-    .thrust = LoadSound("./assets/thrust.wav")
+    .thrust = LoadSound("./assets/thrust.wav"),
+    .asteroidDestroyed = LoadSound("./assets/asteroid.wav")
   };
 
   Vector2 playerStartPosition = { 
@@ -491,7 +494,7 @@ int main() {
   };
 
   Timer asteroidSpawnTimer;
-  startTimer(&asteroidSpawnTimer, 3.0);
+  startTimer(&asteroidSpawnTimer, 2.0);
 
   Array projectiles = {
     .ptr = NULL,
