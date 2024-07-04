@@ -384,6 +384,17 @@ void update(
 
     moveAsteroid(&asteroidsData[i]);
 
+    Vector2 position = {
+      .x = asteroidsData[i].texture.dest.x,
+      .y = asteroidsData[i].texture.dest.y
+    };
+
+    if (isObjectOutOfBounds(position))
+    {
+      deleteElementFromArray(asteroids, i);
+      continue;
+    }
+
     if (checkObjectsCollision(asteroidsData[i].texture.dest, player->texture.dest)) {
       if (player->lifes == 1) {
         PlaySound(sounds.explode);
