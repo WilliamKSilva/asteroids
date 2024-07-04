@@ -19,6 +19,8 @@
 
 #define ASTEROID_SPEED 5.0
 
+#define BIG_ASTEROID_SCORE 20
+
 // TODO: draw my own assets
 
 typedef struct {
@@ -362,7 +364,7 @@ void update(
   shootProjectile(projectiles, *player, sounds.shoot);
 
   // Scripted updates
-  for (int i = 0; i < projectiles->length;) {
+  for (int i = 0; i < projectiles->length; ++i) {
     Projectile* ptr = projectiles->ptr;
     moveProjectile(&ptr[i]); 
 
@@ -375,8 +377,6 @@ void update(
     if (isObjectOutOfBounds(projectilePosition)) {
       deleteElementFromArray(projectiles, i);
     }
-
-    ++i;
   }
 
   for (int i = 0; i < asteroids->length; ++i) {
@@ -398,6 +398,18 @@ void update(
       player->texture.dest.y = SCREEN_HEIGHT / 2.0;
       deleteElementFromArray(asteroids, i);
       PlaySound(sounds.explode);
+    }
+
+    for (int j = 0; j < projectiles->length; ++j) {
+      Projectile *projectileData = projectiles->ptr;
+
+      if (checkObjectsCollision(projectileData[j].texture.dest, asteroidsData[i].texture.dest)) {
+        deleteElementFromArray(asteroids, i);
+        deleteElementFromArray(projectiles, j);
+
+        player->score += BIG_ASTEROID_SCORE;
+        break;
+      }
     }
   }
 
