@@ -33,6 +33,8 @@ typedef struct {
 typedef struct {
   TexturePro texture;
   float speed;
+  int lifes;
+  int score;
 } Player;
 
 typedef struct {
@@ -210,6 +212,10 @@ bool isObjectOutOfBounds(Vector2 position) {
   return false;
 }
 
+bool checkObjectsCollision(Rectangle rec1, Rectangle rec2) {
+  return CheckCollisionRecs(rec1, rec2);
+} 
+
 void deleteElementFromArray(Array *array, int indexToDelete) {
   if (array->length == 1) {
     free(array->ptr);
@@ -314,7 +320,31 @@ void moveAsteroid(Asteroid *asteroid) {
   }
 }
 
-void update(Player *player, Array *projectiles, Array *asteroids, Timer *asteroidSpawnTimer, Sound shootSound) {
+void resetGameState(Player *player, Array *projectiles, Array *asteroids)
+{
+  // Reset player attributes 
+  player->texture.dest.x = SCREEN_WIDTH / 2.0;
+  player->texture.dest.y = SCREEN_HEIGHT / 2.0;
+  player->score = 0;
+  player->lifes = 2;
+
+  free(projectiles->ptr);
+  projectiles->ptr = NULL;
+  projectiles->length = 0;
+
+  free(asteroids->ptr);
+  asteroids->ptr = NULL;
+  asteroids->length = 0;
+}
+
+void update(
+  Player *player,
+  Array *projectiles,
+  Array *asteroids,
+  Timer *asteroidSpawnTimer,
+  Sound shootSound,
+  bool *isGameRunning)
+{
   // Input updates
   movePlayer(player);
   shootProjectile(projectiles, *player, shootSound);
@@ -339,6 +369,20 @@ void update(Player *player, Array *projectiles, Array *asteroids, Timer *asteroi
     Asteroid* asteroidsData = (Asteroid*)asteroids->ptr;
 
     moveAsteroid(&asteroidsData[i]);
+
+    if (checkObjectsCollision(asteroidsData[i].texture.dest, player->texture.dest)) {
+      if (player->lifes == 1) {
+        printf("GAME: game over\n");
+        *isGameRunning = false;
+        resetGameState(player, projectiles, asteroids);
+        return;
+      }
+
+      player->lifes--;
+      player->texture.dest.x = SCREEN_WIDTH / 2.0;
+      player->texture.dest.y = SCREEN_HEIGHT / 2.0;
+      deleteElementFromArray(asteroids, i);
+    }
   }
 
   if (isTimerDone(asteroidSpawnTimer)) {
@@ -364,11 +408,23 @@ void render(Player player, Array projectiles, Array asteroids) {
   }
 }
 
+void renderGameOver() {
+  DrawText(
+    "Game Over - Press space to restart",
+    SCREEN_WIDTH / 2,
+    SCREEN_HEIGHT / 2,
+    31,
+    WHITE
+  );
+}
+
 int main() {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Asteroids");
   InitAudioDevice();
   SetTargetFPS(60);
   srand(time(NULL));
+
+  bool isGameRunning = true;
 
   Sound shootSound = LoadSound("./assets/shoot.wav"); 
 
@@ -378,7 +434,9 @@ int main() {
   };
   Player player = {
     .texture = buildTexturePro(&playerStartPosition, "./assets/player.png"),
-    .speed = 0.0
+    .speed = 0.0,
+    .lifes = 2,
+    .score = 0,
   };
 
   Timer asteroidSpawnTimer;
@@ -395,11 +453,23 @@ int main() {
   };
 
   while (!WindowShouldClose()) {
-    update(&player, &projectiles, &asteroids, &asteroidSpawnTimer, shootSound);
+    // Update logic 
+    if (isGameRunning) {
+      update(&player, &projectiles, &asteroids, &asteroidSpawnTimer, shootSound, &isGameRunning);
+    } else {
+      if (IsKeyPressed(KEY_SPACE)) {
+        isGameRunning = true;
+      }
+    }
 
-    BeginDrawing(); 
+    // Render logic
+    BeginDrawing();
       ClearBackground(BLACK);
-      render(player, projectiles, asteroids);
+      if (isGameRunning) {
+        render(player, projectiles, asteroids);
+      } else {
+        renderGameOver();
+      }
     EndDrawing();
   }
 
