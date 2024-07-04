@@ -49,6 +49,7 @@ typedef enum {
 typedef struct {
   TexturePro texture;
   AsteroidSpawn spawn; 
+  bool diagonalMove; 
 } Asteroid;
 
 typedef struct {
@@ -229,7 +230,10 @@ void spawnAsteroid(Array *asteroids) {
     .texture = buildTexturePro(NULL, "./assets/asteroid_big.png")
   };
 
-  asteroid.spawn = randomNumber(asteroidSpawnLimit);
+  asteroid.spawn = randomNumber(asteroidSpawnLimit + 1);
+
+  // 0 or 1 = false or true
+  asteroid.diagonalMove = randomNumber(2);
 
   Vector2 position;
   if (asteroid.spawn == RIGHT) {
@@ -281,17 +285,33 @@ void spawnAsteroid(Array *asteroids) {
 }
 
 void moveAsteroid(Asteroid *asteroid) {
-  if (asteroid->spawn == TOP)
+  if (asteroid->spawn == TOP) {
     asteroid->texture.dest.y += ASTEROID_SPEED;
 
-  if (asteroid->spawn == BOTTOM)
+    if (asteroid->diagonalMove)
+      asteroid->texture.dest.x += ASTEROID_SPEED;
+  }
+
+  if (asteroid->spawn == BOTTOM) {
     asteroid->texture.dest.y -= ASTEROID_SPEED;
 
-  if (asteroid->spawn == LEFT)
-    asteroid->texture.dest.y += ASTEROID_SPEED;
+    if (asteroid->diagonalMove)
+      asteroid->texture.dest.x += ASTEROID_SPEED;
+  }
 
-  if (asteroid->spawn == RIGHT)
-    asteroid->texture.dest.y -= ASTEROID_SPEED;
+  if (asteroid->spawn == LEFT) {
+    asteroid->texture.dest.x += ASTEROID_SPEED;
+
+    if (asteroid->diagonalMove)
+      asteroid->texture.dest.y += ASTEROID_SPEED;
+  }
+
+  if (asteroid->spawn == RIGHT) {
+    asteroid->texture.dest.x -= ASTEROID_SPEED;
+
+    if (asteroid->diagonalMove)
+      asteroid->texture.dest.y += ASTEROID_SPEED;
+  }
 }
 
 void update(Player *player, Array *projectiles, Array *asteroids, Timer *asteroidSpawnTimer, Sound shootSound) {
@@ -362,7 +382,7 @@ int main() {
   };
 
   Timer asteroidSpawnTimer;
-  startTimer(&asteroidSpawnTimer, 4.0);
+  startTimer(&asteroidSpawnTimer, 3.0);
 
   Array projectiles = {
     .ptr = NULL,
