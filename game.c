@@ -22,6 +22,11 @@
 // TODO: draw my own assets
 
 typedef struct {
+  Sound explode;
+  Sound shoot;
+} Sounds;
+
+typedef struct {
   Texture2D sprite;
   Rectangle source;
   Rectangle dest;
@@ -342,12 +347,12 @@ void update(
   Array *projectiles,
   Array *asteroids,
   Timer *asteroidSpawnTimer,
-  Sound shootSound,
+  Sounds sounds,
   bool *isGameRunning)
 {
   // Input updates
   movePlayer(player);
-  shootProjectile(projectiles, *player, shootSound);
+  shootProjectile(projectiles, *player, sounds.shoot);
 
   // Scripted updates
   for (int i = 0; i < projectiles->length; ++i) {
@@ -372,6 +377,7 @@ void update(
 
     if (checkObjectsCollision(asteroidsData[i].texture.dest, player->texture.dest)) {
       if (player->lifes == 1) {
+        PlaySound(sounds.explode);
         printf("GAME: game over\n");
         *isGameRunning = false;
         resetGameState(player, projectiles, asteroids);
@@ -382,6 +388,7 @@ void update(
       player->texture.dest.x = SCREEN_WIDTH / 2.0;
       player->texture.dest.y = SCREEN_HEIGHT / 2.0;
       deleteElementFromArray(asteroids, i);
+      PlaySound(sounds.explode);
     }
   }
 
@@ -426,7 +433,10 @@ int main() {
 
   bool isGameRunning = true;
 
-  Sound shootSound = LoadSound("./assets/shoot.wav"); 
+  Sounds sounds = {
+    .shoot = LoadSound("./assets/shoot.wav"),
+    .explode = LoadSound("./assets/explode.wav")
+  };
 
   Vector2 playerStartPosition = { 
     .x = (float)SCREEN_WIDTH / 2.0,
@@ -455,7 +465,7 @@ int main() {
   while (!WindowShouldClose()) {
     // Update logic 
     if (isGameRunning) {
-      update(&player, &projectiles, &asteroids, &asteroidSpawnTimer, shootSound, &isGameRunning);
+      update(&player, &projectiles, &asteroids, &asteroidSpawnTimer, sounds, &isGameRunning);
     } else {
       if (IsKeyPressed(KEY_SPACE)) {
         isGameRunning = true;
