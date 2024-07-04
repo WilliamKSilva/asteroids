@@ -2,6 +2,7 @@
 #include "raylib.h"
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include "timer.h"
 
@@ -49,11 +50,6 @@ typedef struct {
   TexturePro texture;
   AsteroidSpawn spawn; 
 } Asteroid;
-
-typedef struct {
-  Projectile *ptr;
-  int length;
-} ProjectileArray;
 
 typedef struct {
   void *ptr;
@@ -145,7 +141,7 @@ void movePlayer(Player *player) {
   }
 }
 
-void spawnProjectile(ProjectileArray *projectiles, Vector2 *startPosition, float rotation) {
+void spawnProjectile(Array *projectiles, Vector2 *startPosition, float rotation) {
   Projectile projectile = { 
     .texture = buildTexturePro(startPosition, "./assets/projectile.png")
   };
@@ -153,25 +149,28 @@ void spawnProjectile(ProjectileArray *projectiles, Vector2 *startPosition, float
   projectile.texture.rotation = rotation;
 
   if (projectiles->length == 0) {
-    projectiles->ptr = malloc(sizeof(Projectile));
+    Projectile* ptr = malloc(sizeof(Projectile));
 
-    if (projectiles->ptr == NULL) {
+    if (ptr == NULL) {
       printf("Error trying to allocate memory for projectiles\n");
       exit(-1);
     }
 
-    projectiles->ptr[0] = projectile;
+    ptr[0] = projectile;
+    projectiles->ptr = ptr;
     projectiles->length++;
   } else {
     projectiles->length++;
-    projectiles->ptr = realloc(projectiles->ptr, projectiles->length * sizeof(Projectile));
+    Projectile* ptr = realloc(projectiles->ptr, projectiles->length * sizeof(Projectile));
 
-    if (projectiles->ptr == NULL) {
+    if (ptr == NULL) {
       printf("Error trying to allocate memory for projectiles\n");
       exit(-1);
     }
 
-    projectiles->ptr[projectiles->length - 1] = projectile;
+    ptr[projectiles->length - 1] = projectile;
+
+    projectiles->ptr = ptr;
   }
 
 }
@@ -187,7 +186,7 @@ Vector2 getProjectileStartPosition(Player player) {
   return position;
 }
 
-void shootProjectile(ProjectileArray *projectiles, Player player, Sound shootSound) {
+void shootProjectile(Array *projectiles, Player player, Sound shootSound) {
   Vector2 projectilePosition = getProjectileStartPosition(player);
   if (IsKeyPressed(KEY_SPACE)) {
     spawnProjectile(projectiles, &projectilePosition, player.texture.rotation);
@@ -210,20 +209,18 @@ bool isObjectOutOfBounds(Vector2 position) {
   return false;
 }
 
-void deleteProjectile(ProjectileArray *projectiles, int projectileIndex) {
-  if (projectiles->length == 1) {
-    free(projectiles->ptr);
-    projectiles->ptr = NULL;
-    projectiles->length = 0;
+void deleteElementFromArray(Array *array, int indexToDelete) {
+  if (array->length == 1) {
+    free(array->ptr);
+    array->ptr = NULL;
+    array->length = 0;
     printf("INFO: array with one element freed\n");
     return;
   }
 
-  for (int i = projectileIndex; i < projectiles->length - 1; ++i) {
-    projectiles->ptr[i] = projectiles->ptr[i + 1];
-  }
+  array->length--;
+  memmove(array->ptr + indexToDelete, array->ptr+indexToDelete+1, (array->length - indexToDelete) * sizeof array->ptr);
 
-  projectiles->length--;
   printf("INFO: object deleted\n");
 }
 
@@ -297,23 +294,24 @@ void moveAsteroid(Asteroid *asteroid) {
     asteroid->texture.dest.y -= ASTEROID_SPEED;
 }
 
-void update(Player *player, ProjectileArray *projectiles, Array *asteroids, Timer *asteroidSpawnTimer, Sound shootSound) {
+void update(Player *player, Array *projectiles, Array *asteroids, Timer *asteroidSpawnTimer, Sound shootSound) {
   // Input updates
   movePlayer(player);
   shootProjectile(projectiles, *player, shootSound);
 
   // Scripted updates
   for (int i = 0; i < projectiles->length; ++i) {
-    moveProjectile(&projectiles->ptr[i]); 
+    Projectile* ptr = projectiles->ptr;
+    moveProjectile(&ptr[i]); 
 
-    Projectile projectile = projectiles->ptr[i];
+    Projectile projectile = ptr[i];
     Vector2 projectilePosition = {
       .x = projectile.texture.dest.x,
       .y = projectile.texture.dest.y
     };
 
     if (isObjectOutOfBounds(projectilePosition)) {
-      deleteProjectile(projectiles, i);
+      deleteElementFromArray(projectiles, i);
     }
   }
 
@@ -332,11 +330,12 @@ void update(Player *player, ProjectileArray *projectiles, Array *asteroids, Time
   }
 }
 
-void render(Player player, ProjectileArray projectiles, Array asteroids) {
+void render(Player player, Array projectiles, Array asteroids) {
   renderTexturePro(player.texture);
 
   for (int i = 0; i < projectiles.length; ++i) {
-    renderTexturePro(projectiles.ptr[i].texture); 
+    Projectile* ptr = (Projectile*)projectiles.ptr;
+    renderTexturePro(ptr[i].texture); 
   }
 
   for (int i = 0; i < asteroids.length; ++i) {
@@ -365,7 +364,7 @@ int main() {
   Timer asteroidSpawnTimer;
   startTimer(&asteroidSpawnTimer, 4.0);
 
-  ProjectileArray projectiles = {
+  Array projectiles = {
     .ptr = NULL,
     .length = 0,
   };
