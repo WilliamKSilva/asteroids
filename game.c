@@ -20,7 +20,6 @@
 #define ASTEROID_SPEED 5.0
 
 // TODO: draw my own assets
-// TODO: remove element from array deleting all elements
 
 typedef struct {
   Sound explode;
@@ -413,6 +412,14 @@ void update(
 
 void render(Player player, Array projectiles, Array asteroids) {
   renderTexturePro(player.texture);
+  char lifeBuf[20];
+  char scoreBuf[20];
+
+  snprintf(scoreBuf, 20, "Score: %d", player.score);
+  DrawText(scoreBuf, 50, 50, 25, WHITE);
+
+  snprintf(lifeBuf, 20, "Lifes: %d", player.lifes);
+  DrawText(lifeBuf, 50, 80, 25, RED);
 
   for (int i = 0; i < projectiles.length; ++i) {
     Projectile* ptr = (Projectile*)projectiles.ptr;
