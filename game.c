@@ -2,6 +2,8 @@
 #include "raylib.h"
 #include <math.h>
 #include <stdio.h>
+#include <time.h>
+#include "timer.h"
 
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080 
@@ -13,6 +15,8 @@
 
 #define PROJECTILE_SPEED 15.0
 #define PROJECTILE_START_POSITION_SCALE 70 
+
+#define ASTEROID_SPEED 5.0
 
 // TODO: draw my own assets
 
@@ -34,12 +38,45 @@ typedef struct {
   TexturePro texture;
 } Projectile;
 
+typedef enum {
+  TOP,
+  BOTTOM,
+  LEFT,
+  RIGHT
+} AsteroidSpawn;
+
+typedef struct {
+  TexturePro texture;
+  AsteroidSpawn spawn; 
+} Asteroid;
+
 typedef struct {
   Projectile *ptr;
   int length;
 } ProjectileArray;
 
-TexturePro buildTexturePro(Vector2 startPosition, const char *spritePath) {
+typedef struct {
+  void *ptr;
+  int length;
+} Array;
+
+const int asteroidSpawnLimit = RIGHT; 
+
+int randomNumber(int limit) {
+  return rand() % limit;
+}
+
+TexturePro buildTexturePro(Vector2 *startPosition, const char *spritePath) {
+  Vector2 position;
+
+  if (startPosition == NULL) {
+    position.x = 0.0;
+    position.y = 0.0;
+  } else {
+    position.x = startPosition->x;
+    position.y = startPosition->y;
+  }
+
   Texture2D sprite = LoadTexture(spritePath);
   TexturePro texture = {
     .color = WHITE,
@@ -50,8 +87,8 @@ TexturePro buildTexturePro(Vector2 startPosition, const char *spritePath) {
       .height = (float)sprite.height
     },
     .dest = {
-      .x = startPosition.x,
-      .y = startPosition.y,
+      .x = position.x,
+      .y = position.y,
       .width = (float)sprite.width,
       .height = (float)sprite.height
     },
@@ -108,7 +145,7 @@ void movePlayer(Player *player) {
   }
 }
 
-void spawnProjectile(ProjectileArray *projectiles, Vector2 startPosition, float rotation) {
+void spawnProjectile(ProjectileArray *projectiles, Vector2 *startPosition, float rotation) {
   Projectile projectile = { 
     .texture = buildTexturePro(startPosition, "./assets/projectile.png")
   };
@@ -120,7 +157,7 @@ void spawnProjectile(ProjectileArray *projectiles, Vector2 startPosition, float 
 
     if (projectiles->ptr == NULL) {
       printf("Error trying to allocate memory for projectiles\n");
-      exit(0);
+      exit(-1);
     }
 
     projectiles->ptr[0] = projectile;
@@ -131,7 +168,7 @@ void spawnProjectile(ProjectileArray *projectiles, Vector2 startPosition, float 
 
     if (projectiles->ptr == NULL) {
       printf("Error trying to allocate memory for projectiles\n");
-      exit(0);
+      exit(-1);
     }
 
     projectiles->ptr[projectiles->length - 1] = projectile;
@@ -151,8 +188,9 @@ Vector2 getProjectileStartPosition(Player player) {
 }
 
 void shootProjectile(ProjectileArray *projectiles, Player player, Sound shootSound) {
+  Vector2 projectilePosition = getProjectileStartPosition(player);
   if (IsKeyPressed(KEY_SPACE)) {
-    spawnProjectile(projectiles, getProjectileStartPosition(player), player.texture.rotation);
+    spawnProjectile(projectiles, &projectilePosition, player.texture.rotation);
     PlaySound(shootSound);
   }
 }
@@ -189,7 +227,77 @@ void deleteProjectile(ProjectileArray *projectiles, int projectileIndex) {
   printf("INFO: object deleted\n");
 }
 
-void update(Player *player, ProjectileArray *projectiles, Sound shootSound) {
+void spawnAsteroid(Array *asteroids) {
+  Asteroid asteroid = {
+    .texture = buildTexturePro(NULL, "./assets/asteroid_big.png")
+  };
+
+  asteroid.spawn = randomNumber(asteroidSpawnLimit);
+
+  Vector2 position;
+  if (asteroid.spawn == RIGHT) {
+    position.x = SCREEN_WIDTH + 5;
+    position.y = randomNumber(SCREEN_HEIGHT);
+  }
+
+  if (asteroid.spawn == LEFT) {
+    position.x = -5;
+    position.y = randomNumber(SCREEN_HEIGHT);
+  }
+
+  if (asteroid.spawn == TOP) {
+    position.x = randomNumber(SCREEN_WIDTH);
+    position.y = -5;
+  }
+
+  if (asteroid.spawn == BOTTOM) {
+    position.x = randomNumber(SCREEN_WIDTH);
+    position.y = SCREEN_HEIGHT + 5;
+  }
+
+  asteroid.texture.dest.x = position.x;
+  asteroid.texture.dest.y = position.y;
+
+  if (asteroids->length == 0) {
+    Asteroid *ptr = (Asteroid*)malloc(sizeof(Asteroid));
+
+    if (ptr == NULL) {
+      printf("INFO: Error trying to allocate memory for asteroids\n");
+      exit(-1);
+    }
+
+    ptr[0] = asteroid;
+    asteroids->ptr = ptr;
+    asteroids->length++;
+  } else {
+    asteroids->length++;
+    Asteroid *ptr = (Asteroid*)realloc(asteroids->ptr, asteroids->length * sizeof(Asteroid));
+
+    if (ptr == NULL) {
+      printf("INFO: Error trying to allocate memory for asteroids\n");
+      exit(-1);
+    }
+
+    ptr[asteroids->length - 1] = asteroid;
+    asteroids->ptr = ptr;
+  }
+}
+
+void moveAsteroid(Asteroid *asteroid) {
+  if (asteroid->spawn == TOP)
+    asteroid->texture.dest.y += ASTEROID_SPEED;
+
+  if (asteroid->spawn == BOTTOM)
+    asteroid->texture.dest.y -= ASTEROID_SPEED;
+
+  if (asteroid->spawn == LEFT)
+    asteroid->texture.dest.y += ASTEROID_SPEED;
+
+  if (asteroid->spawn == RIGHT)
+    asteroid->texture.dest.y -= ASTEROID_SPEED;
+}
+
+void update(Player *player, ProjectileArray *projectiles, Array *asteroids, Timer *asteroidSpawnTimer, Sound shootSound) {
   // Input updates
   movePlayer(player);
   shootProjectile(projectiles, *player, shootSound);
@@ -208,13 +316,32 @@ void update(Player *player, ProjectileArray *projectiles, Sound shootSound) {
       deleteProjectile(projectiles, i);
     }
   }
+
+  for (int i = 0; i < asteroids->length; ++i) {
+    Asteroid* asteroidsData = (Asteroid*)asteroids->ptr;
+
+    moveAsteroid(&asteroidsData[i]);
+  }
+
+  if (isTimerDone(asteroidSpawnTimer)) {
+    // Spawn new Asteroid 
+    spawnAsteroid(asteroids);
+    
+    // Restart timer
+    startTimer(asteroidSpawnTimer, asteroidSpawnTimer->lifeTime);
+  }
 }
 
-void render(Player player, ProjectileArray projectiles) {
+void render(Player player, ProjectileArray projectiles, Array asteroids) {
   renderTexturePro(player.texture);
 
   for (int i = 0; i < projectiles.length; ++i) {
     renderTexturePro(projectiles.ptr[i].texture); 
+  }
+
+  for (int i = 0; i < asteroids.length; ++i) {
+    Asteroid* asteroidsData = (Asteroid*)asteroids.ptr;
+    renderTexturePro(asteroidsData[i].texture); 
   }
 }
 
@@ -222,6 +349,7 @@ int main() {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Asteroids");
   InitAudioDevice();
   SetTargetFPS(60);
+  srand(time(NULL));
 
   Sound shootSound = LoadSound("./assets/shoot.wav"); 
 
@@ -230,21 +358,29 @@ int main() {
     .y = (float)SCREEN_HEIGHT / 2.0
   };
   Player player = {
-    .texture = buildTexturePro(playerStartPosition, "./assets/player.png"),
+    .texture = buildTexturePro(&playerStartPosition, "./assets/player.png"),
     .speed = 0.0
   };
+
+  Timer asteroidSpawnTimer;
+  startTimer(&asteroidSpawnTimer, 4.0);
 
   ProjectileArray projectiles = {
     .ptr = NULL,
     .length = 0,
   };
 
+  Array asteroids = {
+    .ptr = NULL,
+    .length = 0,
+  };
+
   while (!WindowShouldClose()) {
-    update(&player, &projectiles, shootSound);
+    update(&player, &projectiles, &asteroids, &asteroidSpawnTimer, shootSound);
 
     BeginDrawing(); 
       ClearBackground(BLACK);
-      render(player, projectiles);
+      render(player, projectiles, asteroids);
     EndDrawing();
   }
 
