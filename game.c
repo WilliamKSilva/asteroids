@@ -64,6 +64,7 @@ typedef struct {
 typedef struct {
   void *ptr;
   int length;
+  size_t itemSize;
 } Array;
 
 const int asteroidSpawnLimit = RIGHT; 
@@ -227,16 +228,18 @@ bool checkObjectsCollision(Rectangle rec1, Rectangle rec2) {
 } 
 
 void deleteElementFromArray(Array *array, int indexToDelete) {
-  if (array->length == 1) {
-    free(array->ptr);
-    array->ptr = NULL;
-    array->length = 0;
-    printf("INFO: array with one element freed\n");
+  if (indexToDelete < 0 || indexToDelete >= array->length)
     return;
-  }
 
   array->length--;
-  memmove(array->ptr + indexToDelete, array->ptr+indexToDelete+1, (array->length - indexToDelete) * sizeof array->ptr);
+
+  char *data = (char*)array->ptr;  
+
+  char *dest = data + indexToDelete * array->itemSize;
+  char *source = data + (indexToDelete + 1) * array->itemSize;
+  size_t offset = (array->length - indexToDelete) * array->itemSize;
+
+  memmove(dest, source, offset);
 
   printf("INFO: object deleted\n");
 }
@@ -360,7 +363,7 @@ void update(
   shootProjectile(projectiles, *player, sounds.shoot);
 
   // Scripted updates
-  for (int i = 0; i < projectiles->length; ++i) {
+  for (int i = 0; i < projectiles->length;) {
     Projectile* ptr = projectiles->ptr;
     moveProjectile(&ptr[i]); 
 
@@ -373,6 +376,8 @@ void update(
     if (isObjectOutOfBounds(projectilePosition)) {
       deleteElementFromArray(projectiles, i);
     }
+
+    ++i;
   }
 
   for (int i = 0; i < asteroids->length; ++i) {
@@ -461,11 +466,13 @@ int main() {
   Array projectiles = {
     .ptr = NULL,
     .length = 0,
+    .itemSize = sizeof(Projectile)
   };
 
   Array asteroids = {
     .ptr = NULL,
     .length = 0,
+    .itemSize = sizeof(Asteroid)
   };
 
   while (!WindowShouldClose()) {
