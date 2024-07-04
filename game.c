@@ -160,6 +160,33 @@ void moveProjectile(Projectile *projectile) {
   projectile->texture.dest.y -= cos(projectile->texture.rotation * DEG2RAD) * PROJECTILE_SPEED;
 }
 
+bool isObjectOutOfBounds(Vector2 position) {
+  if (position.x > SCREEN_WIDTH || position.x < 0)
+      return true;
+
+  if (position.y > SCREEN_HEIGHT || position.y < 0)
+      return true;
+
+  return false;
+}
+
+void deleteProjectile(ProjectileArray *projectiles, int projectileIndex) {
+  if (projectiles->length == 1) {
+    free(projectiles->ptr);
+    projectiles->ptr = NULL;
+    projectiles->length = 0;
+    printf("INFO: array with one element freed\n");
+    return;
+  }
+
+  for (int i = projectileIndex; i < projectiles->length - 1; ++i) {
+    projectiles->ptr[i] = projectiles->ptr[i + 1];
+  }
+
+  projectiles->length--;
+  printf("INFO: object deleted\n");
+}
+
 void update(Player *player, ProjectileArray *projectiles) {
   // Input updates
   movePlayer(player);
@@ -168,6 +195,16 @@ void update(Player *player, ProjectileArray *projectiles) {
   // Scripted updates
   for (int i = 0; i < projectiles->length; ++i) {
     moveProjectile(&projectiles->ptr[i]); 
+
+    Projectile projectile = projectiles->ptr[i];
+    Vector2 projectilePosition = {
+      .x = projectile.texture.dest.x,
+      .y = projectile.texture.dest.y
+    };
+
+    if (isObjectOutOfBounds(projectilePosition)) {
+      deleteProjectile(projectiles, i);
+    }
   }
 }
 
