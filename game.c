@@ -136,6 +136,7 @@ void spawnProjectile(ProjectileArray *projectiles, Vector2 startPosition, float 
 
     projectiles->ptr[projectiles->length - 1] = projectile;
   }
+
 }
 
 Vector2 getProjectileStartPosition(Player player) {
@@ -149,9 +150,10 @@ Vector2 getProjectileStartPosition(Player player) {
   return position;
 }
 
-void shootProjectile(ProjectileArray *projectiles, Player player) {
+void shootProjectile(ProjectileArray *projectiles, Player player, Sound shootSound) {
   if (IsKeyPressed(KEY_SPACE)) {
     spawnProjectile(projectiles, getProjectileStartPosition(player), player.texture.rotation);
+    PlaySound(shootSound);
   }
 }
 
@@ -187,10 +189,10 @@ void deleteProjectile(ProjectileArray *projectiles, int projectileIndex) {
   printf("INFO: object deleted\n");
 }
 
-void update(Player *player, ProjectileArray *projectiles) {
+void update(Player *player, ProjectileArray *projectiles, Sound shootSound) {
   // Input updates
   movePlayer(player);
-  shootProjectile(projectiles, *player);
+  shootProjectile(projectiles, *player, shootSound);
 
   // Scripted updates
   for (int i = 0; i < projectiles->length; ++i) {
@@ -218,7 +220,10 @@ void render(Player player, ProjectileArray projectiles) {
 
 int main() {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Asteroids");
+  InitAudioDevice();
   SetTargetFPS(60);
+
+  Sound shootSound = LoadSound("./assets/shoot.wav"); 
 
   Vector2 playerStartPosition = { 
     .x = (float)SCREEN_WIDTH / 2.0,
@@ -235,7 +240,7 @@ int main() {
   };
 
   while (!WindowShouldClose()) {
-    update(&player, &projectiles);
+    update(&player, &projectiles, shootSound);
 
     BeginDrawing(); 
       ClearBackground(BLACK);
