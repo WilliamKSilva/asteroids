@@ -1,5 +1,7 @@
 #include "stdlib.h"
 #include "raylib.h"
+#include "raymath.h"
+#include <math.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -74,6 +76,7 @@ typedef struct {
 typedef struct {
   TexturePro texture;
   Spawn spawn;
+  Timer shootTimer; 
 } Enemy;
 
 typedef struct {
@@ -88,10 +91,17 @@ int randomNumber(int limit) {
 }
 
 StartPositionBasedOnSpawn getStartPositionBasedOnSpawn(Spawn spawn, bool getRotation) {
-  StartPositionBasedOnSpawn startPosition;
+  StartPositionBasedOnSpawn startPosition = {
+    .position = {
+      .x = 0.0,
+      .y = 0.0
+    },
+    .rotation = 0.0
+  };
+
   if (spawn == RIGHT) {
-    startPosition.position.x = SCREEN_WIDTH + 5;
-    startPosition.position.y = randomNumber(SCREEN_HEIGHT);
+    startPosition.position.x = (float)SCREEN_WIDTH + 5.0;
+    startPosition.position.y = (float)randomNumber(SCREEN_HEIGHT);
 
     if (getRotation)
       startPosition.rotation = 270.0;
@@ -100,8 +110,8 @@ StartPositionBasedOnSpawn getStartPositionBasedOnSpawn(Spawn spawn, bool getRota
   }
 
   if (spawn == LEFT) {
-    startPosition.position.x = -5;
-    startPosition.position.y = randomNumber(SCREEN_HEIGHT);
+    startPosition.position.x = -5.0;
+    startPosition.position.y = (float)randomNumber(SCREEN_HEIGHT);
 
     if (getRotation)
       startPosition.rotation = 90.0;
@@ -110,8 +120,8 @@ StartPositionBasedOnSpawn getStartPositionBasedOnSpawn(Spawn spawn, bool getRota
   }
 
   if (spawn == TOP) {
-    startPosition.position.x = randomNumber(SCREEN_WIDTH);
-    startPosition.position.y = -5;
+    startPosition.position.x = (float)randomNumber(SCREEN_WIDTH);
+    startPosition.position.y = -5.0;
 
     if (getRotation)
       startPosition.rotation = 180.0;
@@ -120,8 +130,8 @@ StartPositionBasedOnSpawn getStartPositionBasedOnSpawn(Spawn spawn, bool getRota
   }
 
   if (spawn == BOTTOM) {
-    startPosition.position.x = randomNumber(SCREEN_WIDTH);
-    startPosition.position.y = SCREEN_HEIGHT + 5;
+    startPosition.position.x = (float)randomNumber(SCREEN_WIDTH);
+    startPosition.position.y = (float)SCREEN_HEIGHT + 5.0;
 
     if (getRotation)
       startPosition.rotation = 0.0;
@@ -289,23 +299,15 @@ void spawnProjectile(Array *projectiles, Vector2 *startPosition, float rotation)
 
 }
 
-Vector2 getProjectileStartPosition(Player player) {
+Vector2 getProjectileStartPosition(Vector2 shooterPos, float shooterRotation) {
   Vector2 position = {
-    .x = player.texture.dest.x,
-    .y = player.texture.dest.y,
+    .x = shooterPos.x,
+    .y = shooterPos.y,
   };
-  position.x += sin(player.texture.rotation * DEG2RAD) * PROJECTILE_START_POSITION_SCALE;
-  position.y -= cos(player.texture.rotation * DEG2RAD) * PROJECTILE_START_POSITION_SCALE;
+  position.x += sin(shooterRotation * DEG2RAD) * PROJECTILE_START_POSITION_SCALE;
+  position.y -= cos(shooterRotation * DEG2RAD) * PROJECTILE_START_POSITION_SCALE;
 
   return position;
-}
-
-void shootProjectile(Array *projectiles, Player player, Sound shootSound) {
-  Vector2 projectilePosition = getProjectileStartPosition(player);
-  if (IsKeyPressed(KEY_SPACE)) {
-    spawnProjectile(projectiles, &projectilePosition, player.texture.rotation);
-    PlaySound(shootSound);
-  }
 }
 
 void moveProjectile(Projectile *projectile) {
@@ -389,6 +391,10 @@ void spawnEnemy(Array *enemies) {
 
   Enemy enemy = {
     .texture = texture,
+    .shootTimer = {
+      .startTime = GetTime(),
+      .lifeTime = 3.0
+    } 
   };
 
   enemy.spawn = randomNumber(spawnLimit);
@@ -454,7 +460,15 @@ void update(
 {
   // Input updates
   movePlayer(player, sounds.thrust);
-  shootProjectile(projectiles, *player, sounds.shoot);
+  if (IsKeyPressed(KEY_SPACE)) {
+    Vector2 playerPosition = {
+      .x = player->texture.dest.x,
+      .y = player->texture.dest.y,
+    };
+
+    Vector2 projectilePosition = getProjectileStartPosition(playerPosition, player->texture.rotation);
+    spawnProjectile(projectiles, &projectilePosition, player->texture.rotation);
+  }
 
   // Scripted updates
   // Projectiles
@@ -527,13 +541,30 @@ void update(
   for (int i = 0; i < enemies->length; ++i) {
     Enemy *enemiesData = (Enemy*)enemies->ptr;
     Enemy enemy = enemiesData[i];
-    Vector2 currentPosition = {
+    Vector2 pos = {
       .x = enemy.texture.dest.x,
       .y = enemy.texture.dest.y,
     };
 
+    Vector2 playerPos = {
+      .x = player->texture.dest.x,
+      .y = player->texture.dest.y,
+    };
+
+    Vector2 origin = {
+      .x = (float)SCREEN_WIDTH / 2.0,
+      .y = (float)SCREEN_HEIGHT / 2.0
+    };
+
+    Vector2 direction = Vector2Subtract(playerPos, pos); 
+
+    // X and Y needs to be swapped - (0, 0) = TOP LEFT CORNER
+    // Negative Y because upwards is to the bottom direction in raylib
+    float angle = atan2(direction.x, -direction.y);
+    enemiesData[i].texture.rotation = angle * RAD2DEG;
+
     Vector2 position = moveObjectBasedOnSpawn(
-      currentPosition,
+      pos,
       enemy.spawn,
       ENEMY_SPEED,
       false
@@ -544,6 +575,12 @@ void update(
 
     if (isObjectOutOfBounds(position))
       deleteElementFromArray(enemies, i);
+
+    if (isTimerDone(&enemiesData[i].shootTimer)) {
+      Vector2 projectilePos = getProjectileStartPosition(pos, enemy.texture.rotation);
+      spawnProjectile(projectiles, &projectilePos, enemy.texture.rotation);
+      startTimer(&enemiesData[i].shootTimer, 3.0);
+    }
   }
 
   if (isTimerDone(asteroidSpawnTimer)) {
@@ -635,7 +672,7 @@ int main() {
   startTimer(&asteroidSpawnTimer, 2.0);
 
   Timer enemySpawnTimer;
-  startTimer(&enemySpawnTimer, 2.0);
+  startTimer(&enemySpawnTimer, 5.0);
 
   Array projectiles = {
     .ptr = NULL,
