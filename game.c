@@ -634,7 +634,7 @@ void update(
     for (int j = 0; j < projectiles->length; ++j) {
       Projectile *projectileData = projectiles->ptr;
 
-      if (checkObjectsCollision(projectileData[j].texture.dest, enemiesData[i].texture.dest)) {
+      if (checkObjectsCollision(projectileData[j].texture.dest, enemiesData[i].texture.dest) && !projectileData[i].enemyProjectile) {
         deleteElementFromArray(enemies, i);
         deleteElementFromArray(projectiles, j);
 
