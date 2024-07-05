@@ -20,6 +20,8 @@
 #define PROJECTILE_ENEMY_SPEED 10.0
 #define PROJECTILE_START_POSITION_SCALE 70 
 
+#define PLAYER_FIRE_EFFECT_POSITION_SCALE -55
+
 #define ASTEROID_SPEED 5.0
 
 #define ENEMY_SPEED 3.0
@@ -27,9 +29,10 @@
 #define BIG_ASTEROID_SCORE 20
 #define ENEMY_SCORE 10
 
-// TODO: add assets effects 
+// TODO: add assets effects
 // TODO: add proper score system
 // TODO: add menu
+// TODO: add smaller asteroids spawn
 
 typedef struct {
   Texture2D sprite;
@@ -48,6 +51,10 @@ typedef struct {
 } Sounds;
 
 typedef struct {
+  Texture2D playerShipFire;
+} StaticAssets;
+
+typedef struct {
   void *ptr;
   int length;
   size_t itemSize;
@@ -58,6 +65,7 @@ typedef struct {
   float speed;
   int lifes;
   int score;
+  bool isBoosting;
 } Player;
 
 typedef struct {
@@ -194,7 +202,16 @@ Vector2 moveObjectBasedOnSpawn(Vector2 currentPosition, Spawn spawn, float speed
   return Vector2Normalize(position);
 }
 
-TexturePro buildTexturePro(Vector2 *startPosition, const char *spritePath) {
+Vector2 getObjectPosition(TexturePro texture) {
+  Vector2 position = {
+    .x = texture.dest.x,
+    .y = texture.dest.y,
+  };
+
+  return position;
+}
+
+TexturePro buildTexturePro(Vector2 *startPosition, const char *spritePath, Texture2D *prevLoadedSprite) {
   Vector2 position;
 
   if (startPosition == NULL) {
@@ -205,7 +222,13 @@ TexturePro buildTexturePro(Vector2 *startPosition, const char *spritePath) {
     position.y = startPosition->y;
   }
 
-  Texture2D sprite = LoadTexture(spritePath);
+  Texture2D sprite;
+
+  if (!prevLoadedSprite)
+    sprite = LoadTexture(spritePath);
+  else
+    sprite = *prevLoadedSprite;
+
   TexturePro texture = {
     .color = WHITE,
     .source = {
@@ -258,9 +281,11 @@ void movePlayer(Player *player, Sound thrustSound) {
 
     player->texture.dest.x += sin(player->texture.rotation * DEG2RAD) * player->speed;
     player->texture.dest.y -= cos(player->texture.rotation * DEG2RAD) * player->speed;
+    player->isBoosting = true;
   }
 
   if (IsKeyUp(KEY_W)) {
+    player->isBoosting = false;
     bool isDraggingBackwards = player->speed - PLAYER_DRAG < 0; 
 
     if (isDraggingBackwards) {
@@ -276,14 +301,32 @@ void movePlayer(Player *player, Sound thrustSound) {
   }
 }
 
+TexturePro getPlayerFireEffect(TexturePro playerTexture, Texture2D *fireSprite) {
+  Vector2 firePosition = getObjectPosition(playerTexture);
+  firePosition.x += sin(playerTexture.rotation * DEG2RAD) * PLAYER_FIRE_EFFECT_POSITION_SCALE;
+  firePosition.y -= cos(playerTexture.rotation * DEG2RAD) * PLAYER_FIRE_EFFECT_POSITION_SCALE;
+
+  TexturePro fireTexture = buildTexturePro(&firePosition, NULL, fireSprite);
+  fireTexture.rotation = playerTexture.rotation;
+
+  return fireTexture;
+}
+
+void renderPlayer(Player player, Texture2D *fireSprite) {
+  renderTexturePro(player.texture);
+  if (player.isBoosting) {
+    renderTexturePro(getPlayerFireEffect(player.texture, fireSprite));
+  }
+}
+
 void spawnProjectile(Array *projectiles, Vector2 *startPosition, float rotation, bool enemyProjectile) {
   Projectile projectile;
 
   if (enemyProjectile) {
-    projectile.texture = buildTexturePro(startPosition, "./assets/enemy_projectile.png");
+    projectile.texture = buildTexturePro(startPosition, "./assets/enemy_projectile.png", NULL);
     projectile.enemyProjectile = true;
   } else {
-    projectile.texture = buildTexturePro(startPosition, "./assets/projectile.png");
+    projectile.texture = buildTexturePro(startPosition, "./assets/projectile.png", NULL);
     projectile.enemyProjectile = false;
   }
 
@@ -364,7 +407,7 @@ void deleteElementFromArray(Array *array, int indexToDelete) {
 
 void spawnAsteroid(Array *asteroids) {
   Asteroid asteroid = {
-    .texture = buildTexturePro(NULL, "./assets/asteroid_big.png")
+    .texture = buildTexturePro(NULL, "./assets/asteroid_big.png", NULL)
   };
 
   asteroid.spawn = randomNumber(spawnLimit + 1);
@@ -403,7 +446,7 @@ void spawnAsteroid(Array *asteroids) {
 }
 
 void spawnEnemy(Array *enemies) {
-  TexturePro texture = buildTexturePro(NULL, "./assets/enemy.png");
+  TexturePro texture = buildTexturePro(NULL, "./assets/enemy.png", NULL);
 
   Enemy enemy = {
     .texture = texture,
@@ -674,7 +717,6 @@ void update(
       ENEMY_SPEED,
       false
     );
-    // TODO: test using "enemy" variable here
     enemiesData[i].texture.dest.x = position.x;
     enemiesData[i].texture.dest.y = position.y;
 
@@ -710,9 +752,11 @@ void render(
   Player player,
   Array projectiles,
   Array asteroids,
-  Array enemies)
+  Array enemies,
+  StaticAssets assets)
 {
-  renderTexturePro(player.texture);
+  renderPlayer(player, &assets.playerShipFire);
+
   char lifeBuf[20];
   char scoreBuf[20];
 
@@ -763,15 +807,20 @@ int main() {
     .asteroidDestroyed = LoadSound("./assets/asteroid.wav")
   };
 
+  StaticAssets assets = {
+    .playerShipFire = LoadTexture("./assets/fire.png")
+  };
+
   Vector2 playerStartPosition = { 
     .x = (float)SCREEN_WIDTH / 2.0,
     .y = (float)SCREEN_HEIGHT / 2.0
   };
   Player player = {
-    .texture = buildTexturePro(&playerStartPosition, "./assets/player.png"),
+    .texture = buildTexturePro(&playerStartPosition, "./assets/player.png", NULL),
     .speed = 0.0,
     .lifes = 2,
     .score = 0,
+    .isBoosting = false
   };
 
   Timer asteroidSpawnTimer;
@@ -821,7 +870,7 @@ int main() {
     BeginDrawing();
       ClearBackground(BLACK);
       if (isGameRunning) {
-        render(player, projectiles, asteroids, enemies);
+        render(player, projectiles, asteroids, enemies, assets);
       } else {
         renderGameOver();
       }
