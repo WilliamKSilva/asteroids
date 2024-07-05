@@ -19,6 +19,8 @@
 
 #define ASTEROID_SPEED 5.0
 
+#define ENEMY_SPEED 3.0
+
 #define BIG_ASTEROID_SCORE 20
 
 // TODO: draw my own assets
@@ -40,6 +42,12 @@ typedef struct {
 } Sounds;
 
 typedef struct {
+  void *ptr;
+  int length;
+  size_t itemSize;
+} Array;
+
+typedef struct {
   TexturePro texture;
   float speed;
   int lifes;
@@ -55,24 +63,114 @@ typedef enum {
   BOTTOM,
   LEFT,
   RIGHT
-} AsteroidSpawn;
+} Spawn;
 
 typedef struct {
   TexturePro texture;
-  AsteroidSpawn spawn; 
+  Spawn spawn; 
   bool diagonalMove; 
 } Asteroid;
 
 typedef struct {
-  void *ptr;
-  int length;
-  size_t itemSize;
-} Array;
+  TexturePro texture;
+  Spawn spawn;
+} Enemy;
 
-const int asteroidSpawnLimit = RIGHT; 
+typedef struct {
+  Vector2 position;
+  float rotation; // Object facing torwards rotation based on spawn
+} StartPositionBasedOnSpawn;
+
+const int spawnLimit = RIGHT; 
 
 int randomNumber(int limit) {
   return rand() % limit;
+}
+
+StartPositionBasedOnSpawn getStartPositionBasedOnSpawn(Spawn spawn, bool getRotation) {
+  StartPositionBasedOnSpawn startPosition;
+  if (spawn == RIGHT) {
+    startPosition.position.x = SCREEN_WIDTH + 5;
+    startPosition.position.y = randomNumber(SCREEN_HEIGHT);
+
+    if (getRotation)
+      startPosition.rotation = 270.0;
+
+    return startPosition;
+  }
+
+  if (spawn == LEFT) {
+    startPosition.position.x = -5;
+    startPosition.position.y = randomNumber(SCREEN_HEIGHT);
+
+    if (getRotation)
+      startPosition.rotation = 90.0;
+
+    return startPosition;
+  }
+
+  if (spawn == TOP) {
+    startPosition.position.x = randomNumber(SCREEN_WIDTH);
+    startPosition.position.y = -5;
+
+    if (getRotation)
+      startPosition.rotation = 180.0;
+
+    return startPosition;
+  }
+
+  if (spawn == BOTTOM) {
+    startPosition.position.x = randomNumber(SCREEN_WIDTH);
+    startPosition.position.y = SCREEN_HEIGHT + 5;
+
+    if (getRotation)
+      startPosition.rotation = 0.0;
+
+    return startPosition;
+  }
+
+  return startPosition;
+}
+
+Vector2 moveObjectBasedOnSpawn(Vector2 currentPosition, Spawn spawn, float speed, bool diagonalMove) {
+  Vector2 position = currentPosition;
+  if (spawn == TOP) {
+    position.y += speed;
+
+    if (diagonalMove)
+      position.x += speed;
+
+    return position;
+  }
+
+  if (spawn == BOTTOM) {
+    position.y -= speed;
+
+    if (diagonalMove)
+      position.x += speed;
+
+    return position;
+  }
+
+  if (spawn == LEFT) {
+    position.x += speed;
+
+    if (diagonalMove)
+      position.y += speed;
+
+    return position;
+  }
+
+  if (spawn == RIGHT) {
+    position.x -= speed;
+
+    if (diagonalMove)
+      position.y += speed;
+
+    return position;
+  }
+
+  return position;
 }
 
 TexturePro buildTexturePro(Vector2 *startPosition, const char *spritePath) {
@@ -216,10 +314,10 @@ void moveProjectile(Projectile *projectile) {
 }
 
 bool isObjectOutOfBounds(Vector2 position) {
-  if (position.x > SCREEN_WIDTH || position.x < 0)
+  if (position.x > SCREEN_WIDTH + 5 || position.x < -5)
       return true;
 
-  if (position.y > SCREEN_HEIGHT || position.y < 0)
+  if (position.y > SCREEN_HEIGHT + 5 || position.y < -5)
       return true;
 
   return false;
@@ -251,34 +349,15 @@ void spawnAsteroid(Array *asteroids) {
     .texture = buildTexturePro(NULL, "./assets/asteroid_big.png")
   };
 
-  asteroid.spawn = randomNumber(asteroidSpawnLimit + 1);
+  asteroid.spawn = randomNumber(spawnLimit + 1);
 
   // 0 or 1 = false or true
   asteroid.diagonalMove = randomNumber(2);
 
-  Vector2 position;
-  if (asteroid.spawn == RIGHT) {
-    position.x = SCREEN_WIDTH + 5;
-    position.y = randomNumber(SCREEN_HEIGHT);
-  }
+  StartPositionBasedOnSpawn startPosition = getStartPositionBasedOnSpawn(asteroid.spawn, false);
 
-  if (asteroid.spawn == LEFT) {
-    position.x = -5;
-    position.y = randomNumber(SCREEN_HEIGHT);
-  }
-
-  if (asteroid.spawn == TOP) {
-    position.x = randomNumber(SCREEN_WIDTH);
-    position.y = -5;
-  }
-
-  if (asteroid.spawn == BOTTOM) {
-    position.x = randomNumber(SCREEN_WIDTH);
-    position.y = SCREEN_HEIGHT + 5;
-  }
-
-  asteroid.texture.dest.x = position.x;
-  asteroid.texture.dest.y = position.y;
+  asteroid.texture.dest.x = startPosition.position.x;
+  asteroid.texture.dest.y = startPosition.position.y;
 
   if (asteroids->length == 0) {
     Asteroid *ptr = (Asteroid*)malloc(sizeof(Asteroid));
@@ -305,33 +384,44 @@ void spawnAsteroid(Array *asteroids) {
   }
 }
 
-void moveAsteroid(Asteroid *asteroid) {
-  if (asteroid->spawn == TOP) {
-    asteroid->texture.dest.y += ASTEROID_SPEED;
+void spawnEnemy(Array *enemies) {
+  TexturePro texture = buildTexturePro(NULL, "./assets/enemy.png");
 
-    if (asteroid->diagonalMove)
-      asteroid->texture.dest.x += ASTEROID_SPEED;
-  }
+  Enemy enemy = {
+    .texture = texture,
+  };
 
-  if (asteroid->spawn == BOTTOM) {
-    asteroid->texture.dest.y -= ASTEROID_SPEED;
+  enemy.spawn = randomNumber(spawnLimit);
 
-    if (asteroid->diagonalMove)
-      asteroid->texture.dest.x += ASTEROID_SPEED;
-  }
+  StartPositionBasedOnSpawn startPosition = getStartPositionBasedOnSpawn(enemy.spawn, true);
+  enemy.texture.dest.x = startPosition.position.x;
+  enemy.texture.dest.y = startPosition.position.y;
 
-  if (asteroid->spawn == LEFT) {
-    asteroid->texture.dest.x += ASTEROID_SPEED;
+  // Set enemy facing torwards direction based on spawn
+  enemy.texture.rotation = startPosition.rotation;
 
-    if (asteroid->diagonalMove)
-      asteroid->texture.dest.y += ASTEROID_SPEED;
-  }
+  if (enemies->length == 0) {
+    Enemy *ptr = (Enemy*)malloc(sizeof(Enemy));
 
-  if (asteroid->spawn == RIGHT) {
-    asteroid->texture.dest.x -= ASTEROID_SPEED;
+    if (ptr == NULL) {
+      printf("INFO: Error trying to allocate memory for asteroids\n");
+      exit(-1);
+    }
 
-    if (asteroid->diagonalMove)
-      asteroid->texture.dest.y += ASTEROID_SPEED;
+    ptr[0] = enemy;
+    enemies->ptr = ptr;
+    enemies->length++;
+  } else {
+    enemies->length++;
+    Enemy *ptr = (Enemy*)realloc(enemies->ptr, enemies->length * sizeof(Enemy));
+
+    if (ptr == NULL) {
+      printf("INFO: Error trying to allocate memory for enemies\n");
+      exit(-1);
+    }
+
+    ptr[enemies->length - 1] = enemy;
+    enemies->ptr = ptr;
   }
 }
 
@@ -356,7 +446,9 @@ void update(
   Player *player,
   Array *projectiles,
   Array *asteroids,
+  Array *enemies,
   Timer *asteroidSpawnTimer,
+  Timer *enemySpawnTimer,
   Sounds sounds,
   bool *isGameRunning)
 {
@@ -365,6 +457,7 @@ void update(
   shootProjectile(projectiles, *player, sounds.shoot);
 
   // Scripted updates
+  // Projectiles
   for (int i = 0; i < projectiles->length; ++i) {
     Projectile* ptr = projectiles->ptr;
     moveProjectile(&ptr[i]); 
@@ -380,15 +473,19 @@ void update(
     }
   }
 
+  // Asteroids
   for (int i = 0; i < asteroids->length; ++i) {
     Asteroid* asteroidsData = (Asteroid*)asteroids->ptr;
+    Asteroid asteroid = asteroidsData[i];
 
-    moveAsteroid(&asteroidsData[i]);
-
-    Vector2 position = {
-      .x = asteroidsData[i].texture.dest.x,
-      .y = asteroidsData[i].texture.dest.y
+    Vector2 currentPosition = {
+      .x = asteroid.texture.dest.x,
+      .y = asteroid.texture.dest.y
     };
+
+    Vector2 position = moveObjectBasedOnSpawn(currentPosition, asteroid.spawn, ASTEROID_SPEED, asteroid.diagonalMove);
+    asteroidsData[i].texture.dest.x = position.x;
+    asteroidsData[i].texture.dest.y = position.y;
 
     if (isObjectOutOfBounds(position))
     {
@@ -426,6 +523,29 @@ void update(
     }
   }
 
+  // Enemies
+  for (int i = 0; i < enemies->length; ++i) {
+    Enemy *enemiesData = (Enemy*)enemies->ptr;
+    Enemy enemy = enemiesData[i];
+    Vector2 currentPosition = {
+      .x = enemy.texture.dest.x,
+      .y = enemy.texture.dest.y,
+    };
+
+    Vector2 position = moveObjectBasedOnSpawn(
+      currentPosition,
+      enemy.spawn,
+      ENEMY_SPEED,
+      false
+    );
+    // TODO: test using "enemy" variable here
+    enemiesData[i].texture.dest.x = position.x;
+    enemiesData[i].texture.dest.y = position.y;
+
+    if (isObjectOutOfBounds(position))
+      deleteElementFromArray(enemies, i);
+  }
+
   if (isTimerDone(asteroidSpawnTimer)) {
     // Spawn new Asteroid 
     spawnAsteroid(asteroids);
@@ -433,9 +553,22 @@ void update(
     // Restart timer
     startTimer(asteroidSpawnTimer, asteroidSpawnTimer->lifeTime);
   }
+
+  if (isTimerDone(enemySpawnTimer)) {
+    // Spawn new Enemy 
+    spawnEnemy(enemies);
+    
+    // Restart timer
+    startTimer(enemySpawnTimer, enemySpawnTimer->lifeTime);
+  }
 }
 
-void render(Player player, Array projectiles, Array asteroids) {
+void render(
+  Player player,
+  Array projectiles,
+  Array asteroids,
+  Array enemies)
+{
   renderTexturePro(player.texture);
   char lifeBuf[20];
   char scoreBuf[20];
@@ -454,6 +587,11 @@ void render(Player player, Array projectiles, Array asteroids) {
   for (int i = 0; i < asteroids.length; ++i) {
     Asteroid* asteroidsData = (Asteroid*)asteroids.ptr;
     renderTexturePro(asteroidsData[i].texture); 
+  }
+
+  for (int i = 0; i < enemies.length; ++i) {
+    Enemy* enemiesData = (Enemy*)enemies.ptr;
+    renderTexturePro(enemiesData[i].texture); 
   }
 }
 
@@ -496,6 +634,9 @@ int main() {
   Timer asteroidSpawnTimer;
   startTimer(&asteroidSpawnTimer, 2.0);
 
+  Timer enemySpawnTimer;
+  startTimer(&enemySpawnTimer, 2.0);
+
   Array projectiles = {
     .ptr = NULL,
     .length = 0,
@@ -508,10 +649,25 @@ int main() {
     .itemSize = sizeof(Asteroid)
   };
 
+  Array enemies = {
+    .ptr = NULL,
+    .length = 0,
+    .itemSize = sizeof(Enemy)
+  };
+
   while (!WindowShouldClose()) {
     // Update logic 
     if (isGameRunning) {
-      update(&player, &projectiles, &asteroids, &asteroidSpawnTimer, sounds, &isGameRunning);
+      update(
+        &player,
+        &projectiles,
+        &asteroids,
+        &enemies,
+        &asteroidSpawnTimer,
+        &enemySpawnTimer,
+        sounds,
+        &isGameRunning
+      );
     } else {
       if (IsKeyPressed(KEY_SPACE)) {
         isGameRunning = true;
@@ -522,7 +678,7 @@ int main() {
     BeginDrawing();
       ClearBackground(BLACK);
       if (isGameRunning) {
-        render(player, projectiles, asteroids);
+        render(player, projectiles, asteroids, enemies);
       } else {
         renderGameOver();
       }
