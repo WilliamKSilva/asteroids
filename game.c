@@ -16,7 +16,7 @@
 #define PLAYER_MAX_IMPULSE 10.0
 #define PLAYER_DRAG 0.5
 
-#define PROJECTILE_SPEED 15.0
+#define PROJECTILE_SPEED 10.0
 #define PROJECTILE_START_POSITION_SCALE 70 
 
 #define ASTEROID_SPEED 5.0
@@ -58,6 +58,7 @@ typedef struct {
 
 typedef struct {
   TexturePro texture;
+  bool enemyProjectile;
 } Projectile;
 
 typedef enum {
@@ -83,6 +84,12 @@ typedef struct {
   Vector2 position;
   float rotation; // Object facing torwards rotation based on spawn
 } StartPositionBasedOnSpawn;
+
+typedef enum {
+  ASTEROID,
+  PROJECTILE,
+  ENEMY
+} CollidedObject;
 
 const int spawnLimit = RIGHT; 
 
@@ -270,8 +277,10 @@ void spawnProjectile(Array *projectiles, Vector2 *startPosition, float rotation,
 
   if (enemyProjectile) {
     projectile.texture = buildTexturePro(startPosition, "./assets/enemy_projectile.png");
+    projectile.enemyProjectile = true;
   } else {
     projectile.texture = buildTexturePro(startPosition, "./assets/projectile.png");
+    projectile.enemyProjectile = false;
   }
 
   projectile.texture.rotation = rotation;
@@ -300,7 +309,6 @@ void spawnProjectile(Array *projectiles, Vector2 *startPosition, float rotation,
 
     projectiles->ptr = ptr;
   }
-
 }
 
 Vector2 getProjectileStartPosition(Vector2 shooterPos, float shooterRotation) {
@@ -435,7 +443,7 @@ void spawnEnemy(Array *enemies) {
   }
 }
 
-void resetGameState(Player *player, Array *projectiles, Array *asteroids)
+void resetGameState(Player *player, Array *projectiles, Array *asteroids, Array *enemies)
 {
   // Reset player attributes 
   player->texture.dest.x = SCREEN_WIDTH / 2.0;
@@ -450,28 +458,49 @@ void resetGameState(Player *player, Array *projectiles, Array *asteroids)
   free(asteroids->ptr);
   asteroids->ptr = NULL;
   asteroids->length = 0;
+
+  free(enemies->ptr);
+  enemies->ptr = NULL;
+  enemies->length = 0;
 }
 
 void onPlayerDeath(
   Player *player,
   Array *asteroids,
   Array *projectiles,
+  Array *enemies,
   Sounds sounds,
   bool *isGameRunning,
-  int indexOfElementCollided) {
+  int indexOfElementCollided,
+  CollidedObject collidedObject) {
   if (player->lifes == 1) {
     PlaySound(sounds.explode);
     printf("GAME: game over\n");
     *isGameRunning = false;
-    resetGameState(player, projectiles, asteroids);
+    resetGameState(player, projectiles, asteroids, enemies);
     return;
   }
 
   player->lifes--;
   player->texture.dest.x = SCREEN_WIDTH / 2.0;
   player->texture.dest.y = SCREEN_HEIGHT / 2.0;
-  deleteElementFromArray(asteroids, indexOfElementCollided);
-  PlaySound(sounds.explode);
+  if (collidedObject == ASTEROID) {
+    deleteElementFromArray(asteroids, indexOfElementCollided);
+    PlaySound(sounds.explode);
+    return;
+  }
+
+  if (collidedObject == PROJECTILE) {
+    deleteElementFromArray(projectiles, indexOfElementCollided);
+    PlaySound(sounds.explode);
+    return;
+  }
+
+  if (collidedObject == ENEMY) {
+    deleteElementFromArray(enemies, indexOfElementCollided);
+    PlaySound(sounds.explode);
+    return;
+  }
 }
 
 void update(
@@ -503,15 +532,18 @@ void update(
     Projectile* projectilesData = projectiles->ptr;
     Projectile projectile = projectilesData[i];
 
-    if (checkObjectsCollision(projectile.texture.dest, player->texture.dest)) {
+    if (checkObjectsCollision(projectile.texture.dest, player->texture.dest) && projectile.enemyProjectile) {
       onPlayerDeath(
         player,
         asteroids,
         projectiles,
+        enemies,
         sounds,
         isGameRunning,
-        i
+        i,
+        PROJECTILE
       );
+      deleteElementFromArray(projectiles, i);
       break;
     }
 
@@ -552,9 +584,11 @@ void update(
         player,
         asteroids,
         projectiles,
+        enemies,
         sounds,
         isGameRunning,
-        i
+        i,
+        ASTEROID
       ); 
       break;
     }
@@ -583,9 +617,11 @@ void update(
         player,
         asteroids,
         projectiles,
+        enemies,
         sounds,
         isGameRunning,
-        i
+        i,
+        ENEMY
       );
       break;
     }
