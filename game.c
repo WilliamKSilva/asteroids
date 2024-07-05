@@ -265,10 +265,14 @@ void movePlayer(Player *player, Sound thrustSound) {
   }
 }
 
-void spawnProjectile(Array *projectiles, Vector2 *startPosition, float rotation) {
-  Projectile projectile = { 
-    .texture = buildTexturePro(startPosition, "./assets/projectile.png")
-  };
+void spawnProjectile(Array *projectiles, Vector2 *startPosition, float rotation, bool enemyProjectile) {
+  Projectile projectile;
+
+  if (enemyProjectile) {
+    projectile.texture = buildTexturePro(startPosition, "./assets/enemy_projectile.png");
+  } else {
+    projectile.texture = buildTexturePro(startPosition, "./assets/projectile.png");
+  }
 
   projectile.texture.rotation = rotation;
 
@@ -448,6 +452,28 @@ void resetGameState(Player *player, Array *projectiles, Array *asteroids)
   asteroids->length = 0;
 }
 
+void onPlayerDeath(
+  Player *player,
+  Array *asteroids,
+  Array *projectiles,
+  Sounds sounds,
+  bool *isGameRunning,
+  int indexOfElementCollided) {
+  if (player->lifes == 1) {
+    PlaySound(sounds.explode);
+    printf("GAME: game over\n");
+    *isGameRunning = false;
+    resetGameState(player, projectiles, asteroids);
+    return;
+  }
+
+  player->lifes--;
+  player->texture.dest.x = SCREEN_WIDTH / 2.0;
+  player->texture.dest.y = SCREEN_HEIGHT / 2.0;
+  deleteElementFromArray(asteroids, indexOfElementCollided);
+  PlaySound(sounds.explode);
+}
+
 void update(
   Player *player,
   Array *projectiles,
@@ -467,16 +493,30 @@ void update(
     };
 
     Vector2 projectilePosition = getProjectileStartPosition(playerPosition, player->texture.rotation);
-    spawnProjectile(projectiles, &projectilePosition, player->texture.rotation);
+    spawnProjectile(projectiles, &projectilePosition, player->texture.rotation, false);
+    PlaySound(sounds.shoot);
   }
 
   // Scripted updates
   // Projectiles
   for (int i = 0; i < projectiles->length; ++i) {
-    Projectile* ptr = projectiles->ptr;
-    moveProjectile(&ptr[i]); 
+    Projectile* projectilesData = projectiles->ptr;
+    Projectile projectile = projectilesData[i];
 
-    Projectile projectile = ptr[i];
+    if (checkObjectsCollision(projectile.texture.dest, player->texture.dest)) {
+      onPlayerDeath(
+        player,
+        asteroids,
+        projectiles,
+        sounds,
+        isGameRunning,
+        i
+      );
+      break;
+    }
+
+    moveProjectile(&projectilesData[i]); 
+
     Vector2 projectilePosition = {
       .x = projectile.texture.dest.x,
       .y = projectile.texture.dest.y
@@ -508,19 +548,15 @@ void update(
     }
 
     if (checkObjectsCollision(asteroidsData[i].texture.dest, player->texture.dest)) {
-      if (player->lifes == 1) {
-        PlaySound(sounds.explode);
-        printf("GAME: game over\n");
-        *isGameRunning = false;
-        resetGameState(player, projectiles, asteroids);
-        return;
-      }
-
-      player->lifes--;
-      player->texture.dest.x = SCREEN_WIDTH / 2.0;
-      player->texture.dest.y = SCREEN_HEIGHT / 2.0;
-      deleteElementFromArray(asteroids, i);
-      PlaySound(sounds.explode);
+      onPlayerDeath(
+        player,
+        asteroids,
+        projectiles,
+        sounds,
+        isGameRunning,
+        i
+      ); 
+      break;
     }
 
     for (int j = 0; j < projectiles->length; ++j) {
@@ -541,6 +577,19 @@ void update(
   for (int i = 0; i < enemies->length; ++i) {
     Enemy *enemiesData = (Enemy*)enemies->ptr;
     Enemy enemy = enemiesData[i];
+
+    if (checkObjectsCollision(enemy.texture.dest, player->texture.dest)) {
+      onPlayerDeath(
+        player,
+        asteroids,
+        projectiles,
+        sounds,
+        isGameRunning,
+        i
+      );
+      break;
+    }
+
     Vector2 pos = {
       .x = enemy.texture.dest.x,
       .y = enemy.texture.dest.y,
@@ -578,8 +627,9 @@ void update(
 
     if (isTimerDone(&enemiesData[i].shootTimer)) {
       Vector2 projectilePos = getProjectileStartPosition(pos, enemy.texture.rotation);
-      spawnProjectile(projectiles, &projectilePos, enemy.texture.rotation);
+      spawnProjectile(projectiles, &projectilePos, enemy.texture.rotation, true);
       startTimer(&enemiesData[i].shootTimer, 3.0);
+      PlaySound(sounds.shoot);
     }
   }
 
