@@ -27,7 +27,9 @@
 #define BIG_ASTEROID_SCORE 20
 #define ENEMY_SCORE 10
 
-// TODO: draw my own assets
+// TODO: add assets effects 
+// TODO: add proper score system
+// TODO: add menu
 
 typedef struct {
   Texture2D sprite;
@@ -189,7 +191,7 @@ Vector2 moveObjectBasedOnSpawn(Vector2 currentPosition, Spawn spawn, float speed
     return position;
   }
 
-  return position;
+  return Vector2Normalize(position);
 }
 
 TexturePro buildTexturePro(Vector2 *startPosition, const char *spritePath) {
