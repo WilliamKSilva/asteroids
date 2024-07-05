@@ -16,7 +16,8 @@
 #define PLAYER_MAX_IMPULSE 10.0
 #define PLAYER_DRAG 0.5
 
-#define PROJECTILE_SPEED 10.0
+#define PROJECTILE_PLAYER_SPEED 15.0
+#define PROJECTILE_ENEMY_SPEED 10.0
 #define PROJECTILE_START_POSITION_SCALE 70 
 
 #define ASTEROID_SPEED 5.0
@@ -24,6 +25,7 @@
 #define ENEMY_SPEED 3.0
 
 #define BIG_ASTEROID_SCORE 20
+#define ENEMY_SCORE 10
 
 // TODO: draw my own assets
 
@@ -322,9 +324,9 @@ Vector2 getProjectileStartPosition(Vector2 shooterPos, float shooterRotation) {
   return position;
 }
 
-void moveProjectile(Projectile *projectile) {
-  projectile->texture.dest.x += sin(projectile->texture.rotation * DEG2RAD) * PROJECTILE_SPEED;
-  projectile->texture.dest.y -= cos(projectile->texture.rotation * DEG2RAD) * PROJECTILE_SPEED;
+void moveProjectile(Projectile *projectile, float speed) {
+  projectile->texture.dest.x += sin(projectile->texture.rotation * DEG2RAD) * speed;
+  projectile->texture.dest.y -= cos(projectile->texture.rotation * DEG2RAD) * speed;
 }
 
 bool isObjectOutOfBounds(Vector2 position) {
@@ -547,7 +549,10 @@ void update(
       break;
     }
 
-    moveProjectile(&projectilesData[i]); 
+    if (projectile.enemyProjectile)
+      moveProjectile(&projectilesData[i], PROJECTILE_ENEMY_SPEED); 
+    else
+      moveProjectile(&projectilesData[i], PROJECTILE_PLAYER_SPEED); 
 
     Vector2 projectilePosition = {
       .x = projectile.texture.dest.x,
@@ -624,6 +629,19 @@ void update(
         ENEMY
       );
       break;
+    }
+
+    for (int j = 0; j < projectiles->length; ++j) {
+      Projectile *projectileData = projectiles->ptr;
+
+      if (checkObjectsCollision(projectileData[j].texture.dest, enemiesData[i].texture.dest)) {
+        deleteElementFromArray(enemies, i);
+        deleteElementFromArray(projectiles, j);
+
+        player->score += ENEMY_SCORE;
+        PlaySound(sounds.asteroidDestroyed);
+        break;
+      }
     }
 
     Vector2 pos = {
