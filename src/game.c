@@ -14,19 +14,14 @@
 #include "asteroid.h"
 #include "enemy.h"
 
-#define SCREEN_WIDTH 1920
-#define SCREEN_HEIGHT 1080 
+const int asteroid_big_score = 20;
+const int enemy_score = 10;
 
-#define PROJECTILE_PLAYER_SPEED 15.0
-#define PROJECTILE_ENEMY_SPEED 10.0
-#define PROJECTILE_START_POSITION_SCALE 70 
+const float projectile_player_speed = 15.0;
+const float projectile_enemy_speed = 10.0;
 
-#define ASTEROID_SPEED 5.0
-
-#define ENEMY_SPEED 3.0
-
-#define BIG_ASTEROID_SCORE 20
-#define ENEMY_SCORE 10
+const float asteroid_speed = 5.0;
+const float enemy_speed = 3.0;
 
 // TODO: remove useless macros?
 
@@ -38,8 +33,8 @@
 void reset(Player *player, Array *projectiles, Array *asteroids, Array *enemies)
 {
   // Reset player attributes 
-  player->texture.dest.x = SCREEN_WIDTH / 2.0;
-  player->texture.dest.y = SCREEN_HEIGHT / 2.0;
+  player->texture.dest.x = GetScreenWidth() / 2.0;
+  player->texture.dest.y = GetScreenHeight() / 2.0;
   player->score = 0;
   player->lifes = 2;
 
@@ -109,9 +104,9 @@ void update(
     }
 
     if (projectile.enemyProjectile)
-      projectile_move(&projectilesData[i], PROJECTILE_ENEMY_SPEED); 
+      projectile_move(&projectilesData[i], projectile_enemy_speed); 
     else
-      projectile_move(&projectilesData[i], PROJECTILE_PLAYER_SPEED); 
+      projectile_move(&projectilesData[i], projectile_player_speed); 
 
     Vector2 projectilePosition = {
       .x = projectile.texture.dest.x,
@@ -133,7 +128,7 @@ void update(
       .y = asteroid.texture.dest.y
     };
 
-    Vector2 position = move_object_by_spawn(currentPosition, asteroid.spawn, ASTEROID_SPEED, asteroid.diagonalMove);
+    Vector2 position = move_object_by_spawn(currentPosition, asteroid.spawn, asteroid_speed, asteroid.diagonalMove);
     asteroidsData[i].texture.dest.x = position.x;
     asteroidsData[i].texture.dest.y = position.y;
 
@@ -164,7 +159,7 @@ void update(
         deleteFromArray(asteroids, i);
         deleteFromArray(projectiles, j);
 
-        player->score += BIG_ASTEROID_SCORE;
+        player->score += asteroid_big_score;
         PlaySound(sounds.asteroidDestroyed);
         break;
       }
@@ -197,7 +192,7 @@ void update(
         deleteFromArray(enemies, i);
         deleteFromArray(projectiles, j);
 
-        player->score += ENEMY_SCORE;
+        player->score += enemy_score;
         PlaySound(sounds.asteroidDestroyed);
         break;
       }
@@ -213,11 +208,6 @@ void update(
       .y = player->texture.dest.y,
     };
 
-    Vector2 origin = {
-      .x = (float)SCREEN_WIDTH / 2.0,
-      .y = (float)SCREEN_HEIGHT / 2.0
-    };
-
     Vector2 direction = Vector2Subtract(playerPos, pos); 
 
     // X and Y needs to be swapped - (0, 0) = TOP LEFT CORNER
@@ -228,7 +218,7 @@ void update(
     Vector2 position = move_object_by_spawn(
       pos,
       enemy.spawn,
-      ENEMY_SPEED,
+      enemy_speed,
       false
     );
     enemiesData[i].texture.dest.x = position.x;
@@ -300,15 +290,15 @@ void render(
 void renderGameOver() {
   DrawText(
     "Game Over - Press space to restart",
-    SCREEN_WIDTH / 2,
-    SCREEN_HEIGHT / 2,
+    GetScreenWidth() / 2,
+    GetScreenHeight() / 2,
     31,
     WHITE
   );
 }
 
 int main() {
-  InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Asteroids");
+  InitWindow(1920, 1080, "Asteroids");
   InitAudioDevice();
   SetTargetFPS(60);
   srand(time(NULL));
@@ -328,8 +318,8 @@ int main() {
   };
 
   Vector2 playerStartPosition = { 
-    .x = (float)SCREEN_WIDTH / 2.0,
-    .y = (float)SCREEN_HEIGHT / 2.0
+    .x = (float)GetScreenWidth() / 2.0,
+    .y = (float)GetScreenHeight() / 2.0
   };
   Player player = {
     .texture = build_texture_pro(&playerStartPosition, "./assets/player.png", NULL),
@@ -343,7 +333,6 @@ int main() {
   timer_start(&asteroidSpawnTimer, 2.0);
 
   Timer enemySpawnTimer;
-  double enemyTime = 5.0;
   timer_start(&enemySpawnTimer, 5.0);
 
   Array projectiles = {
