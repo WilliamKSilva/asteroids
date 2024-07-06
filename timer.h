@@ -2,6 +2,7 @@
 #define TIMER
 
 #include "raylib.h"
+#include <stdlib.h>
 
 typedef struct {
   double lifeTime;

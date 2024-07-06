@@ -7,6 +7,7 @@
 #include <string.h>
 #include <time.h>
 #include "timer.h"
+#include <unistd.h>
 
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080 
@@ -29,10 +30,11 @@
 #define BIG_ASTEROID_SCORE 20
 #define ENEMY_SCORE 10
 
-// TODO: add assets effects
+// TODO: finish player damage effect rendering
 // TODO: add proper score system
 // TODO: add menu
 // TODO: add smaller asteroids spawn
+// TODO: add game state struct
 
 typedef struct {
   Texture2D sprite;
@@ -52,7 +54,14 @@ typedef struct {
 
 typedef struct {
   Texture2D playerShipFire;
+  Texture2D damage;
 } StaticAssets;
+
+typedef enum {
+  GAME_OVER,
+  PLAYER_DEATH_PAUSE,
+  RUNNING,
+} GameStatus;
 
 typedef struct {
   void *ptr;
@@ -104,6 +113,15 @@ typedef enum {
 } CollidedObject;
 
 const int spawnLimit = RIGHT; 
+
+
+// TODO: this needs to be global but needs to be restructured
+// to be part of an global state data structure
+Timer playerDeathTimer;
+Vector2 playerDeathPosition = {
+  .x = 0.0,
+  .y = 0.0
+};
 
 int randomNumber(int limit) {
   return rand() % limit;
@@ -224,7 +242,7 @@ TexturePro buildTexturePro(Vector2 *startPosition, const char *spritePath, Textu
 
   Texture2D sprite;
 
-  if (!prevLoadedSprite)
+  if (prevLoadedSprite == NULL)
     sprite = LoadTexture(spritePath);
   else
     sprite = *prevLoadedSprite;
@@ -312,10 +330,16 @@ TexturePro getPlayerFireEffect(TexturePro playerTexture, Texture2D *fireSprite) 
   return fireTexture;
 }
 
-void renderPlayer(Player player, Texture2D *fireSprite) {
-  renderTexturePro(player.texture);
-  if (player.isBoosting) {
-    renderTexturePro(getPlayerFireEffect(player.texture, fireSprite));
+void renderPlayer(Player *player, GameStatus *gameStatus, Texture2D *fireSprite, Texture2D *damageSprite) {
+  if (*gameStatus == PLAYER_DEATH_PAUSE) {
+    TexturePro damage = buildTexturePro(&playerDeathPosition, NULL, damageSprite);
+    renderTexturePro(damage);
+    return;
+  }
+
+  renderTexturePro(player->texture);
+  if (player->isBoosting) {
+    renderTexturePro(getPlayerFireEffect(player->texture, fireSprite));
   }
 }
 
@@ -517,20 +541,29 @@ void onPlayerDeath(
   Array *projectiles,
   Array *enemies,
   Sounds sounds,
-  bool *isGameRunning,
+  GameStatus *gameStatus,
   int indexOfElementCollided,
-  CollidedObject collidedObject) {
+  CollidedObject collidedObject)
+{
   if (player->lifes == 1) {
     PlaySound(sounds.explode);
     printf("GAME: game over\n");
-    *isGameRunning = false;
+    *gameStatus = GAME_OVER;
+    playerDeathPosition.x = player->texture.dest.x;
+    playerDeathPosition.y = player->texture.dest.y;
     resetGameState(player, projectiles, asteroids, enemies);
+    startTimer(&playerDeathTimer, 2.0);
     return;
   }
 
   player->lifes--;
+  playerDeathPosition.x = player->texture.dest.x;
+  playerDeathPosition.y = player->texture.dest.y;
   player->texture.dest.x = SCREEN_WIDTH / 2.0;
   player->texture.dest.y = SCREEN_HEIGHT / 2.0;
+  *gameStatus = PLAYER_DEATH_PAUSE;
+  startTimer(&playerDeathTimer, 2.0);
+
   if (collidedObject == ASTEROID) {
     deleteElementFromArray(asteroids, indexOfElementCollided);
     PlaySound(sounds.explode);
@@ -558,8 +591,16 @@ void update(
   Timer *asteroidSpawnTimer,
   Timer *enemySpawnTimer,
   Sounds sounds,
-  bool *isGameRunning)
+  GameStatus *gameStatus)
 {
+  if (*gameStatus == PLAYER_DEATH_PAUSE) {
+    if (isTimerDone(&playerDeathTimer)) {
+      *gameStatus = RUNNING;
+    }
+
+    return;
+  }
+
   // Input updates
   movePlayer(player, sounds.thrust);
   if (IsKeyPressed(KEY_SPACE)) {
@@ -586,7 +627,7 @@ void update(
         projectiles,
         enemies,
         sounds,
-        isGameRunning,
+        gameStatus,
         i,
         PROJECTILE
       );
@@ -636,7 +677,7 @@ void update(
         projectiles,
         enemies,
         sounds,
-        isGameRunning,
+        gameStatus,
         i,
         ASTEROID
       ); 
@@ -669,7 +710,7 @@ void update(
         projectiles,
         enemies,
         sounds,
-        isGameRunning,
+        gameStatus,
         i,
         ENEMY
       );
@@ -749,21 +790,22 @@ void update(
 }
 
 void render(
-  Player player,
+  Player *player,
   Array projectiles,
   Array asteroids,
   Array enemies,
+  GameStatus *gameStatus,
   StaticAssets assets)
 {
-  renderPlayer(player, &assets.playerShipFire);
+  renderPlayer(player, gameStatus, &assets.playerShipFire, &assets.damage);
 
   char lifeBuf[20];
   char scoreBuf[20];
 
-  snprintf(scoreBuf, 20, "Score: %d", player.score);
+  snprintf(scoreBuf, 20, "Score: %d", player->score);
   DrawText(scoreBuf, 50, 50, 25, WHITE);
 
-  snprintf(lifeBuf, 20, "Lifes: %d", player.lifes);
+  snprintf(lifeBuf, 20, "Lifes: %d", player->lifes);
   DrawText(lifeBuf, 50, 80, 25, RED);
 
   for (int i = 0; i < projectiles.length; ++i) {
@@ -798,7 +840,7 @@ int main() {
   SetTargetFPS(60);
   srand(time(NULL));
 
-  bool isGameRunning = true;
+  GameStatus gameStatus = RUNNING; 
 
   Sounds sounds = {
     .shoot = LoadSound("./assets/shoot.wav"),
@@ -808,7 +850,8 @@ int main() {
   };
 
   StaticAssets assets = {
-    .playerShipFire = LoadTexture("./assets/fire.png")
+    .playerShipFire = LoadTexture("./assets/fire.png"),
+    .damage = LoadTexture("./assets/damage.png")
   };
 
   Vector2 playerStartPosition = { 
@@ -820,13 +863,14 @@ int main() {
     .speed = 0.0,
     .lifes = 2,
     .score = 0,
-    .isBoosting = false
+    .isBoosting = false,
   };
 
   Timer asteroidSpawnTimer;
   startTimer(&asteroidSpawnTimer, 2.0);
 
   Timer enemySpawnTimer;
+  double enemyTime = 5.0;
   startTimer(&enemySpawnTimer, 5.0);
 
   Array projectiles = {
@@ -849,7 +893,9 @@ int main() {
 
   while (!WindowShouldClose()) {
     // Update logic 
-    if (isGameRunning) {
+    if (gameStatus == GAME_OVER && IsKeyPressed(KEY_SPACE)) {
+      gameStatus = RUNNING;
+    } else {
       update(
         &player,
         &projectiles,
@@ -858,21 +904,17 @@ int main() {
         &asteroidSpawnTimer,
         &enemySpawnTimer,
         sounds,
-        &isGameRunning
+        &gameStatus
       );
-    } else {
-      if (IsKeyPressed(KEY_SPACE)) {
-        isGameRunning = true;
-      }
     }
 
     // Render logic
     BeginDrawing();
       ClearBackground(BLACK);
-      if (isGameRunning) {
-        render(player, projectiles, asteroids, enemies, assets);
-      } else {
+      if (gameStatus == GAME_OVER) {
         renderGameOver();
+      } else {
+        render(&player, projectiles, asteroids, enemies, &gameStatus, assets);
       }
     EndDrawing();
   }
