@@ -1,6 +1,7 @@
 #include "common.h"
 
 #include "raymath.h"
+#include <raylib.h>
 #include <stdlib.h>
 
 int random_number(int limit)
@@ -125,4 +126,14 @@ bool object_is_out_of_bounds(Vector2 position) {
 
 bool object_collision_check(Rectangle rec1, Rectangle rec2) {
   return CheckCollisionRecs(rec1, rec2);
+}
+
+float object_rotation_torwards_target(Vector2 pos, Vector2 target_pos)
+{
+  Vector2 direction = Vector2Subtract(target_pos, pos); 
+  // X and Y needs to be swapped - (0, 0) = TOP LEFT CORNER
+  // Negative Y because upwards is to the bottom direction in raylib
+  float angle = atan2(direction.x, -direction.y) * RAD2DEG;
+
+  return angle;
 }

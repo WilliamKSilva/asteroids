@@ -1,4 +1,5 @@
 #include "enemy.h"
+#include "common.h"
 
 #include <stdio.h>
 
@@ -47,4 +48,11 @@ void enemy_spawn(Array *enemies) {
     ptr[enemies->length - 1] = enemy;
     enemies->ptr = ptr;
   }
+}
+
+void enemy_move(Enemy *enemy)
+{
+  Vector2 pos = move_object_by_spawn(object_position(enemy->texture), enemy->spawn, 3.0, false);
+  enemy->texture.dest.x = pos.x;
+  enemy->texture.dest.y = pos.y;
 }

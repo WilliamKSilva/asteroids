@@ -47,5 +47,6 @@ Vector2 object_position(TexturePro texture);
 int random_number(int limit);
 bool object_is_out_of_bounds(Vector2 position);
 bool object_collision_check(Rectangle rec1, Rectangle rec2);
+float object_rotation_torwards_target(Vector2 pos, Vector2 targetPos);
 
 #endif

@@ -12,5 +12,6 @@ typedef struct {
 } Enemy;
 
 void enemy_spawn(Array *enemies);
+void enemy_move(Enemy *enemy);
 
 #endif

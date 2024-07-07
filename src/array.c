@@ -1,6 +1,7 @@
 #include "array.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 void deleteFromArray(Array *array, int indexToDelete) {
