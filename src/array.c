@@ -1,10 +1,9 @@
 #include "array.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
-void deleteFromArray(Array *array, int indexToDelete) {
+void delete_from_array(Array *array, int indexToDelete) {
   if (indexToDelete < 0 || indexToDelete >= array->length)
     return;
 

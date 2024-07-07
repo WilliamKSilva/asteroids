@@ -16,15 +16,15 @@ typedef struct {
   Timer death_timer;
 } Player;
 
-void move_player(Player *player, Sound thrustSound);
-void render_player(Player *player, GameStatus *gameStatus, Texture2D *fireSprite, Texture2D *damageSprite);
+void move_player(Player *player, Sound thrust_sound);
+void render_player(Player *player, GameStatus *game_status, Texture2D *fire_sprite, Texture2D *damage_sprite);
 void on_player_death(
   Player *player,
   Array *asteroids,
   Array *projectiles,
   Array *enemies,
   Sounds sounds,
-  GameStatus *gameStatus,
-  int indexOfElementCollided,
-  CollidedObject collidedObject);
+  GameStatus *game_status,
+  int index_of_collided_element,
+  CollidedObject collided_object);
 #endif

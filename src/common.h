@@ -21,7 +21,7 @@ typedef struct {
   Sound explode;
   Sound shoot;
   Sound thrust;
-  Sound asteroidDestroyed;
+  Sound destroyed;
 } Sounds;
 
 typedef struct {

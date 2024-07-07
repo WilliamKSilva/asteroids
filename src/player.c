@@ -3,6 +3,7 @@
 #include <raylib.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "array.h"
 #include "math.h"
 #include "timer.h"
 
@@ -11,7 +12,8 @@ const float player_impulse = 1.0;
 const float player_max_impulse = 10.0;
 const float player_drag = 0.5;
 
-void move_player(Player *player, Sound thrustSound) {
+void move_player(Player *player, Sound thrust_sound)
+{
   if (IsKeyDown(KEY_A))
     player->texture.rotation -= player_rotation_speed;
 
@@ -19,8 +21,8 @@ void move_player(Player *player, Sound thrustSound) {
     player->texture.rotation += player_rotation_speed;
 
   if (IsKeyDown(KEY_W)) {
-    if (!IsSoundPlaying(thrustSound))
-      PlaySound(thrustSound);
+    if (!IsSoundPlaying(thrust_sound))
+      PlaySound(thrust_sound);
 
     if (player->speed <= player_max_impulse)
       player->speed += player_impulse;
@@ -32,9 +34,9 @@ void move_player(Player *player, Sound thrustSound) {
 
   if (IsKeyUp(KEY_W)) {
     player->is_boosting = false;
-    bool isDraggingBackwards = player->speed - player_drag < 0; 
+    bool is_draggin_backwards = player->speed - player_drag < 0; 
 
-    if (isDraggingBackwards) {
+    if (is_draggin_backwards) {
       player->speed = 0.0;
       player->texture.dest.x += sin(player->texture.rotation * DEG2RAD) * player->speed;
       player->texture.dest.y -= cos(player->texture.rotation * DEG2RAD) * player->speed;
@@ -49,18 +51,19 @@ void move_player(Player *player, Sound thrustSound) {
 
 void render_player(
   Player *player,
-  GameStatus *gameStatus,
-  Texture2D *fireSprite,
-  Texture2D *damageSprite) {
-  if (*gameStatus == PLAYER_DEATH_PAUSE) {
-    TexturePro damage = build_texture_pro(&player->death_position, NULL, damageSprite);
+  GameStatus *game_status,
+  Texture2D *fire_sprite,
+  Texture2D *damage_sprite) {
+  if (*game_status == PLAYER_DEATH_PAUSE)
+{
+    TexturePro damage = build_texture_pro(&player->death_position, NULL, damage_sprite);
     render_texture_pro(damage);
     return;
   }
 
   render_texture_pro(player->texture);
   if (player->is_boosting) {
-    render_texture_pro(build_fire_effect_texture(player->texture, fireSprite));
+    render_texture_pro(build_fire_effect_texture(player->texture, fire_sprite));
   }
 }
 
@@ -70,14 +73,14 @@ void on_player_death(
   Array *projectiles,
   Array *enemies,
   Sounds sounds,
-  GameStatus *gameStatus,
-  int indexOfElementCollided,
-  CollidedObject collidedObject)
+  GameStatus *game_status,
+  int index_of_collided_element,
+  CollidedObject collided_object)
 {
   if (player->lifes == 1) {
     PlaySound(sounds.explode);
     printf("GAME: game over\n");
-    *gameStatus = GAME_OVER;
+    *game_status = GAME_OVER;
     player->death_position.x = player->texture.dest.x;
     player->death_position.y = player->texture.dest.y;
     // TODO: find a better way to call this
@@ -91,23 +94,23 @@ void on_player_death(
   player->death_position.y = player->texture.dest.y;
   player->texture.dest.x = GetScreenWidth() / 2.0;
   player->texture.dest.y = GetScreenHeight() / 2.0;
-  *gameStatus = PLAYER_DEATH_PAUSE;
+  *game_status = PLAYER_DEATH_PAUSE;
   timer_start(&player->death_timer, 3.0);
 
-  if (collidedObject == ASTEROID) {
-    deleteFromArray(asteroids, indexOfElementCollided);
+  if (collided_object == ASTEROID) {
+    delete_from_array(asteroids, index_of_collided_element);
     PlaySound(sounds.explode);
     return;
   }
 
-  if (collidedObject == PROJECTILE) {
-    deleteFromArray(projectiles, indexOfElementCollided);
+  if (collided_object == PROJECTILE) {
+    delete_from_array(projectiles, index_of_collided_element);
     PlaySound(sounds.explode);
     return;
   }
 
-  if (collidedObject == ENEMY) {
-    deleteFromArray(enemies, indexOfElementCollided);
+  if (collided_object == ENEMY) {
+    delete_from_array(enemies, index_of_collided_element);
     PlaySound(sounds.explode);
     return;
   }

@@ -9,6 +9,6 @@ typedef struct {
   size_t itemSize;
 } Array;
 
-void deleteFromArray(Array *array, int indexToDelete);
+void delete_from_array(Array *array, int indexToDelete);
 
 #endif

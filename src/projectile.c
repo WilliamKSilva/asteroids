@@ -26,10 +26,10 @@ void projectile_spawn(Array *projectiles, Vector2 *startPosition, float rotation
 
   if (enemyProjectile) {
     projectile.texture = build_texture_pro(startPosition, "./assets/enemy_projectile.png", NULL);
-    projectile.enemyProjectile = true;
+    projectile.is_enemy_projectile = true;
   } else {
     projectile.texture = build_texture_pro(startPosition, "./assets/projectile.png", NULL);
-    projectile.enemyProjectile = false;
+    projectile.is_enemy_projectile = false;
   }
 
   projectile.texture.rotation = rotation;

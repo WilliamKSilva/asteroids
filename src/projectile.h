@@ -7,7 +7,7 @@
 
 typedef struct {
   TexturePro texture;
-  bool enemyProjectile;
+  bool is_enemy_projectile;
 } Projectile;
 
 Vector2 projectile_start_position(Vector2 shooterPos, float shooterRotation);
