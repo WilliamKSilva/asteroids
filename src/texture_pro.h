@@ -13,7 +13,7 @@ typedef struct {
 } TexturePro;
 
 void render_texture_pro(TexturePro texture);
-TexturePro build_texture_pro(Vector2 *startPosition, const char *spritePath, Texture2D *prevLoadedSprite);
-TexturePro build_fire_effect_texture(TexturePro playerTexture, Texture2D *fireSprite);
+TexturePro build_texture_pro(Vector2 *start_position, const char *sprite_path, Texture2D *prev_loaded_sprite);
+TexturePro build_fire_effect_texture(TexturePro player_texture, Texture2D *fire_sprite);
 
 #endif

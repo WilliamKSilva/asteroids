@@ -3,16 +3,17 @@
 
 #include <stdio.h>
 
-void enemy_spawn(Array *enemies) {
+void enemy_spawn(Array *enemies) 
+{
   const int spawn_limit = RIGHT;
 
   TexturePro texture = build_texture_pro(NULL, "./assets/enemy.png", NULL);
 
   Enemy enemy = {
     .texture = texture,
-    .shootTimer = {
-      .startTime = GetTime(),
-      .lifeTime = 3.0
+    .shoot_timer = {
+      .start_time = GetTime(),
+      .life_time = 3.0
     } 
   };
 

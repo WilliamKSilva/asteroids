@@ -7,7 +7,7 @@
 typedef struct {
   TexturePro texture;
   Spawn spawn; 
-  bool diagonalMove; 
+  bool diagonal_move; 
 } Asteroid;
 
 void asteroid_spawn(Array *asteroids);

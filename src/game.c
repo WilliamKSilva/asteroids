@@ -22,6 +22,7 @@ const float asteroid_speed = 4.0;
 const float enemy_speed = 5.0;
 
 // TODO: finish code style related refactors (snake_case, functions brackets, etc)
+// TODO: break spawn methods into an generic array_push function?
 // TODO: add smaller asteroids spawn
 // TODO: add proper score system
 // TODO: add menu
@@ -154,7 +155,7 @@ void update(
       object_position(asteroid->texture),
       asteroid->spawn,
       asteroid_speed,
-      asteroid->diagonalMove
+      asteroid->diagonal_move
     );
 
     asteroid->texture.dest.x = position.x;
@@ -218,7 +219,7 @@ void update(
     enemy_move(enemy);
     enemy->texture.rotation = object_rotation_torwards_target(object_position(enemy->texture), object_position(player->texture));
 
-    if (timer_is_done(&enemy->shootTimer)) {
+    if (timer_is_done(&enemy->shoot_timer)) {
       Vector2 enemy_pos = object_position(enemy->texture);
       Vector2 projectile_pos = projectile_start_position(enemy_pos, enemy->texture.rotation);
 
@@ -229,7 +230,7 @@ void update(
         true
       );
 
-      timer_start(&enemy->shootTimer, enemy->shootTimer.lifeTime);
+      timer_start(&enemy->shoot_timer, enemy->shoot_timer.life_time);
     }
   }
 
@@ -238,7 +239,7 @@ void update(
     asteroid_spawn(asteroids);
     
     // Restart timer
-    timer_start(asteroid_spawn_timer, asteroid_spawn_timer->lifeTime);
+    timer_start(asteroid_spawn_timer, asteroid_spawn_timer->life_time);
   }
 
   if (timer_is_done(enemy_spawn_timer)) {
@@ -246,7 +247,7 @@ void update(
     enemy_spawn(enemies);
     
     // Restart timer
-    timer_start(enemy_spawn_timer, enemy_spawn_timer->lifeTime);
+    timer_start(enemy_spawn_timer, enemy_spawn_timer->life_time);
   }
 }
 

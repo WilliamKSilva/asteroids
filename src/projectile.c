@@ -5,30 +5,33 @@
 
 const float projectile_start_position_scale = 0;
 
-Vector2 projectile_start_position(Vector2 shooterPos, float shooterRotation) {
+Vector2 projectile_start_position(Vector2 shooter_pos, float shooter_rotation) 
+{
   Vector2 position = {
-    .x = shooterPos.x,
-    .y = shooterPos.y,
+    .x = shooter_pos.x,
+    .y = shooter_pos.y,
   };
-  position.x += sin(shooterRotation * DEG2RAD) * projectile_start_position_scale;
-  position.y -= cos(shooterRotation * DEG2RAD) * projectile_start_position_scale;
+  position.x += sin(shooter_rotation * DEG2RAD) * projectile_start_position_scale;
+  position.y -= cos(shooter_rotation * DEG2RAD) * projectile_start_position_scale;
 
   return position;
 }
 
-void projectile_move(Projectile *projectile, float speed) {
+void projectile_move(Projectile *projectile, float speed) 
+{
   projectile->texture.dest.x += sin(projectile->texture.rotation * DEG2RAD) * speed;
   projectile->texture.dest.y -= cos(projectile->texture.rotation * DEG2RAD) * speed;
 }
 
-void projectile_spawn(Array *projectiles, Vector2 *startPosition, float rotation, bool enemyProjectile) {
+void projectile_spawn(Array *projectiles, Vector2 *start_position, float rotation, bool enemy_projectile) 
+{
   Projectile projectile;
 
-  if (enemyProjectile) {
-    projectile.texture = build_texture_pro(startPosition, "./assets/enemy_projectile.png", NULL);
+  if (enemy_projectile) {
+    projectile.texture = build_texture_pro(start_position, "./assets/enemy_projectile.png", NULL);
     projectile.is_enemy_projectile = true;
   } else {
-    projectile.texture = build_texture_pro(startPosition, "./assets/projectile.png", NULL);
+    projectile.texture = build_texture_pro(start_position, "./assets/projectile.png", NULL);
     projectile.is_enemy_projectile = false;
   }
 

@@ -5,11 +5,11 @@
 #include <stdlib.h>
 
 typedef struct {
-  double lifeTime;
-  double startTime;
+  double life_time;
+  double start_time;
 } Timer;
 
-void timer_start(Timer *timer, double lifeTime);
+void timer_start(Timer *timer, double life_time);
 bool timer_is_done(Timer *timer);
 
 #endif

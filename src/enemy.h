@@ -8,7 +8,7 @@
 typedef struct {
   TexturePro texture;
   Spawn spawn;
-  Timer shootTimer; 
+  Timer shoot_timer; 
 } Enemy;
 
 void enemy_spawn(Array *enemies);

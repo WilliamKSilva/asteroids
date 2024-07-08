@@ -3,7 +3,8 @@
 #include <stdio.h>
 #include "common.h"
 
-void asteroid_spawn(Array *asteroids) {
+void asteroid_spawn(Array *asteroids) 
+{
   const int spawn_limit = RIGHT;
 
   Asteroid asteroid = {
@@ -13,7 +14,7 @@ void asteroid_spawn(Array *asteroids) {
   asteroid.spawn = random_number(spawn_limit + 1);
 
   // 0 or 1 = false or true
-  asteroid.diagonalMove = random_number(2);
+  asteroid.diagonal_move = random_number(2);
 
   ObjectStartPosition startPosition = object_start_position_by_spawn(asteroid.spawn, false);
 

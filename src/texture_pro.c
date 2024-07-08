@@ -7,7 +7,8 @@
 
 const int fire_effect_position_scale = -55;
 
-void render_texture_pro(TexturePro texture) {
+void render_texture_pro(TexturePro texture) 
+{
   DrawTexturePro(
     texture.sprite,
     texture.source,
@@ -18,23 +19,24 @@ void render_texture_pro(TexturePro texture) {
   );
 }
 
-TexturePro build_texture_pro(Vector2 *startPosition, const char *spritePath, Texture2D *prevLoadedSprite) {
+TexturePro build_texture_pro(Vector2 *start_position, const char *sprite_path, Texture2D *prev_loaded_sprite) 
+{
   Vector2 position;
 
-  if (startPosition == NULL) {
+  if (start_position == NULL) {
     position.x = 0.0;
     position.y = 0.0;
   } else {
-    position.x = startPosition->x;
-    position.y = startPosition->y;
+    position.x = start_position->x;
+    position.y = start_position->y;
   }
 
   Texture2D sprite;
 
-  if (prevLoadedSprite == NULL)
-    sprite = LoadTexture(spritePath);
+  if (prev_loaded_sprite == NULL)
+    sprite = LoadTexture(sprite_path);
   else
-    sprite = *prevLoadedSprite;
+    sprite = *prev_loaded_sprite;
 
   TexturePro texture = {
     .color = WHITE,
@@ -61,7 +63,8 @@ TexturePro build_texture_pro(Vector2 *startPosition, const char *spritePath, Tex
   return texture;
 }
 
-TexturePro build_fire_effect_texture(TexturePro playerTexture, Texture2D *fireSprite) {
+TexturePro build_fire_effect_texture(TexturePro playerTexture, Texture2D *fireSprite) 
+{
   Vector2 firePosition = object_position(playerTexture);
   firePosition.x += sin(playerTexture.rotation * DEG2RAD) * fire_effect_position_scale;
   firePosition.y -= cos(playerTexture.rotation * DEG2RAD) * fire_effect_position_scale;

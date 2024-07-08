@@ -10,8 +10,8 @@ typedef struct {
   bool is_enemy_projectile;
 } Projectile;
 
-Vector2 projectile_start_position(Vector2 shooterPos, float shooterRotation);
+Vector2 projectile_start_position(Vector2 shooter_pos, float shooter_rotation);
 void projectile_move(Projectile *projectile, float speed);
-void projectile_spawn(Array *projectiles, Vector2 *startPosition, float rotation, bool enemyProjectile);
+void projectile_spawn(Array *projectiles, Vector2 *start_position, float rotation, bool enemy_projectile);
 
 #endif
