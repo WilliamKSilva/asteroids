@@ -2,6 +2,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include "raylib.h"
+#include "string.h"
 
 #include "projectile.h"
 #include "timer.h"
@@ -12,8 +13,10 @@
 #include "asteroid.h"
 #include "enemy.h"
 
-const int asteroid_big_score = 20;
-const int enemy_score = 10;
+typedef enum {
+  PACIFIC,
+  REGULAR
+} GameMode;
 
 const float projectile_player_speed = 15.0;
 const float projectile_enemy_speed = 10.0;
@@ -21,10 +24,8 @@ const float projectile_enemy_speed = 10.0;
 const float asteroid_speed = 4.0;
 const float enemy_speed = 5.0;
 
-// TODO: finish code style related refactors (snake_case, functions brackets, etc)
 // TODO: break spawn methods into an generic array_push function?
 // TODO: add smaller asteroids spawn
-// TODO: add proper score system
 // TODO: add menu
 // TODO: add global game state struct
 
@@ -57,7 +58,8 @@ void update(
   Timer *asteroid_spawn_timer,
   Timer *enemy_spawn_timer,
   Sounds sounds,
-  GameStatus *game_status)
+  GameStatus *game_status,
+  GameMode game_mode)
 {
   if (*game_status == PLAYER_DEATH_PAUSE) {
     if (timer_is_done(&player->death_timer)) {
@@ -141,15 +143,16 @@ void update(
         delete_from_array(asteroids, a);
         delete_from_array(projectiles, p);
 
-        player->score += asteroid_big_score;
+        player->score += score.big_asteroid;
         PlaySound(sounds.destroyed);
         collided_with_projectile = true;
         break;
       }
     }
 
-    if (collided_with_projectile) 
+    if (collided_with_projectile) {
       continue;
+    }
 
     Vector2 position = move_object_by_spawn(
       object_position(asteroid->texture),
@@ -206,7 +209,7 @@ void update(
         delete_from_array(enemies, e);
         delete_from_array(projectiles, p);
 
-        player->score += enemy_score;
+        player->score += score.enemy;
         PlaySound(sounds.destroyed);
         collided_with_projectile = true;
         break;
@@ -219,7 +222,7 @@ void update(
     enemy_move(enemy);
     enemy->texture.rotation = object_rotation_torwards_target(object_position(enemy->texture), object_position(player->texture));
 
-    if (timer_is_done(&enemy->shoot_timer)) {
+    if (timer_is_done(&enemy->shoot_timer) && game_mode == REGULAR) {
       Vector2 enemy_pos = object_position(enemy->texture);
       Vector2 projectile_pos = projectile_start_position(enemy_pos, enemy->texture.rotation);
 
@@ -296,13 +299,21 @@ void renderGameOver() {
   );
 }
 
-int main() {
+int main(int argc, char *argv[]) {
   InitWindow(1920, 1080, "Asteroids");
   InitAudioDevice();
   SetTargetFPS(60);
   srand(time(NULL));
 
-  GameStatus gameStatus = RUNNING; 
+  GameStatus game_status = RUNNING; 
+  GameMode game_mode = REGULAR;
+
+  if (argc > 1) {
+    printf("%s\n", argv[1]);
+    if (strcmp(argv[1], "mode=PACIFIC") == 0) {
+      game_mode = PACIFIC;
+    };
+  }
 
   Sounds sounds = {
     .shoot = LoadSound("./assets/shoot.wav"),
@@ -354,8 +365,8 @@ int main() {
 
   while (!WindowShouldClose()) {
     // Update logic 
-    if (gameStatus == GAME_OVER && IsKeyPressed(KEY_SPACE)) {
-      gameStatus = RUNNING;
+    if (game_status == GAME_OVER && IsKeyPressed(KEY_SPACE)) {
+      game_status = RUNNING;
     } else {
       update(
         &player,
@@ -365,17 +376,18 @@ int main() {
         &asteroidSpawnTimer,
         &enemySpawnTimer,
         sounds,
-        &gameStatus
+        &game_status,
+        game_mode
       );
     }
 
     // Render logic
     BeginDrawing();
       ClearBackground(BLACK);
-      if (gameStatus == GAME_OVER) {
+      if (game_status == GAME_OVER) {
         renderGameOver();
       } else {
-        render(&player, projectiles, asteroids, enemies, &gameStatus, assets);
+        render(&player, projectiles, asteroids, enemies, &game_status, assets);
       }
     EndDrawing();
   }

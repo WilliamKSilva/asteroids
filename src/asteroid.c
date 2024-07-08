@@ -1,5 +1,6 @@
 #include "asteroid.h"
 
+#include <raymath.h>
 #include <stdio.h>
 #include "common.h"
 

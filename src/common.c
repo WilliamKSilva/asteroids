@@ -1,8 +1,14 @@
 #include "common.h"
 
 #include "raymath.h"
+#include <math.h>
 #include <raylib.h>
 #include <stdlib.h>
+
+Score score = {
+  .enemy = 50,
+  .big_asteroid = 100
+};
 
 int random_number(int limit)
 {

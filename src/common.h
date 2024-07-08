@@ -37,10 +37,16 @@ typedef enum {
 } Spawn;
 
 typedef struct {
+  const int big_asteroid;
+  const int enemy;
+} Score;
+
+typedef struct {
   Vector2 position;
   float rotation; // Object facing torwards rotation based on spawn
 } ObjectStartPosition;
 
+extern Score score;
 ObjectStartPosition object_start_position_by_spawn(Spawn spawn, bool getRotation);
 Vector2 move_object_by_spawn(Vector2 currentPosition, Spawn spawn, float speed, bool diagonalMove);
 Vector2 object_position(TexturePro texture);
