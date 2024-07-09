@@ -17,6 +17,12 @@ typedef enum {
   ENEMY
 } CollidedObject;
 
+typedef enum {
+  NONE,
+  DIAGONAL_RIGHT,
+  DIAGONAL_LEFT,
+} DiagonalMovement;
+
 typedef struct {
   Sound explode;
   Sound shoot;
@@ -48,7 +54,7 @@ typedef struct {
 
 extern Score score;
 ObjectStartPosition object_start_position_by_spawn(Spawn spawn, bool getRotation);
-Vector2 move_object_by_spawn(Vector2 currentPosition, Spawn spawn, float speed, bool diagonalMove);
+Vector2 move_object_by_spawn(Vector2 currentPosition, Spawn spawn, float speed, DiagonalMovement movement);
 Vector2 object_position(TexturePro texture);
 int random_number(int limit);
 bool object_is_out_of_bounds(Vector2 position);

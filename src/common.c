@@ -70,45 +70,61 @@ ObjectStartPosition object_start_position_by_spawn(Spawn spawn, bool getRotation
   return startPosition;
 }
 
-Vector2 move_object_by_spawn(Vector2 currentPosition, Spawn spawn, float speed, bool diagonalMove) {
-  Vector2 position = currentPosition;
-  if (spawn == TOP) {
-    position.y += speed;
-
-    if (diagonalMove)
-      position.x += speed;
-
-    return position;
-  }
-
-  if (spawn == BOTTOM) {
-    position.y -= speed;
-
-    if (diagonalMove)
-      position.x += speed;
-
-    return position;
-  }
-
-  if (spawn == LEFT) {
-    position.x += speed;
-
-    if (diagonalMove)
+Vector2 move_object_by_spawn(Vector2 position, Spawn spawn, float speed, DiagonalMovement movement) {
+  switch (spawn) {
+    case TOP:
       position.y += speed;
 
-    return position;
+      if (movement == DIAGONAL_LEFT) {
+        position.x -= speed;
+      }
+        
+      if (movement == DIAGONAL_RIGHT) {
+        position.x += speed;
+      }
+      break;
+    case BOTTOM:
+      position.y -= speed;
+
+      if (movement == DIAGONAL_LEFT) {
+        position.x -= speed;
+        return position;
+      }
+        
+      if (movement == DIAGONAL_RIGHT) {
+        position.x += speed;
+        return position;
+      }
+      break;
+    case LEFT:
+      position.x += speed;
+
+      if (movement == DIAGONAL_LEFT) {
+        position.y -= speed;
+        return position;
+      }
+        
+      if (movement == DIAGONAL_RIGHT) {
+        position.y += speed;
+        return position;
+      }
+
+      break;
+    case RIGHT:
+      position.x -= speed;
+
+      if (movement == DIAGONAL_LEFT) {
+        position.y -= speed;
+      }
+        
+      if (movement == DIAGONAL_RIGHT) {
+        position.y += speed;
+      }
+
+      break;
   }
 
-  if (spawn == RIGHT) {
-    position.x -= speed;
-
-    if (diagonalMove)
-      position.y += speed;
-
-    return position;
-  }
-
-  return Vector2Normalize(position);
+  return position;
 }
 
 Vector2 object_position(TexturePro texture) {

@@ -150,7 +150,11 @@ void update(
       }
     }
 
-    if (collided_with_projectile) {
+    if (collided_with_projectile && asteroid->size == BIG) {
+      Asteroid left = asteroid_build_small(*asteroid, DIAGONAL_LEFT);
+      Asteroid right = asteroid_build_small(*asteroid, DIAGONAL_RIGHT);
+      asteroid_spawn(asteroids, left);
+      asteroid_spawn(asteroids, right);
       continue;
     }
 
@@ -158,7 +162,7 @@ void update(
       object_position(asteroid->texture),
       asteroid->spawn,
       asteroid_speed,
-      asteroid->diagonal_move
+      asteroid->diagonal_movement
     );
 
     asteroid->texture.dest.x = position.x;
@@ -239,7 +243,8 @@ void update(
 
   if (timer_is_done(asteroid_spawn_timer)) {
     // Spawn new Asteroid 
-    asteroid_spawn(asteroids);
+    Asteroid asteroid = asteroid_build_big();
+    asteroid_spawn(asteroids, asteroid);
     
     // Restart timer
     timer_start(asteroid_spawn_timer, asteroid_spawn_timer->life_time);
@@ -309,7 +314,6 @@ int main(int argc, char *argv[]) {
   GameMode game_mode = REGULAR;
 
   if (argc > 1) {
-    printf("%s\n", argv[1]);
     if (strcmp(argv[1], "mode=PACIFIC") == 0) {
       game_mode = PACIFIC;
     };
