@@ -1,9 +1,13 @@
-#ifndef COMMON_H 
-#define COMMON_H
+#ifndef GAME_H
+#define GAME_H 
 
-#include "texture_pro.h"
 #include "raylib.h"
-#include "array.h"
+#include "texture_pro.h"
+
+typedef enum {
+  PACIFIC,
+  REGULAR
+} GameMode;
 
 typedef enum {
   GAME_OVER,

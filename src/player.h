@@ -19,13 +19,5 @@ typedef struct {
 Player player_build();
 void move_player(Player *player, Sound thrust_sound);
 void render_player(Player *player, GameStatus *game_status, Texture2D *fire_sprite, Texture2D *damage_sprite);
-void on_player_death(
-  Player *player,
-  Array *asteroids,
-  Array *projectiles,
-  Array *enemies,
-  Sounds sounds,
-  GameStatus *game_status,
-  int index_of_collided_element,
-  CollidedObject collided_object);
+
 #endif

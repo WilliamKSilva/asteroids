@@ -1,11 +1,5 @@
 #include "player.h"
-
-#include <raylib.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include "array.h"
 #include "math.h"
-#include "timer.h"
 
 const float player_rotation_speed = 4.0;
 const float player_impulse = 1.0;
@@ -82,54 +76,5 @@ void render_player(
   render_texture_pro(player->texture);
   if (player->is_boosting) {
     render_texture_pro(build_fire_effect_texture(player->texture, fire_sprite));
-  }
-}
-
-void on_player_death(
-  Player *player,
-  Array *asteroids,
-  Array *projectiles,
-  Array *enemies,
-  Sounds sounds,
-  GameStatus *game_status,
-  int index_of_collided_element,
-  CollidedObject collided_object)
-{
-  if (player->lifes == 1) {
-    PlaySound(sounds.explode);
-    printf("GAME: game over\n");
-    *game_status = GAME_OVER;
-    player->death_position.x = player->texture.dest.x;
-    player->death_position.y = player->texture.dest.y;
-    // TODO: find a better way to call this
-    // reset_game_state(player, projectiles, asteroids, enemies);
-    timer_start(&player->death_timer, 2.0);
-    return;
-  }
-
-  player->lifes--;
-  player->death_position.x = player->texture.dest.x;
-  player->death_position.y = player->texture.dest.y;
-  player->texture.dest.x = GetScreenWidth() / 2.0;
-  player->texture.dest.y = GetScreenHeight() / 2.0;
-  *game_status = PLAYER_DEATH_PAUSE;
-  timer_start(&player->death_timer, 3.0);
-
-  if (collided_object == ASTEROID) {
-    delete_from_array(asteroids, index_of_collided_element);
-    PlaySound(sounds.explode);
-    return;
-  }
-
-  if (collided_object == PROJECTILE) {
-    delete_from_array(projectiles, index_of_collided_element);
-    PlaySound(sounds.explode);
-    return;
-  }
-
-  if (collided_object == ENEMY) {
-    delete_from_array(enemies, index_of_collided_element);
-    PlaySound(sounds.explode);
-    return;
   }
 }

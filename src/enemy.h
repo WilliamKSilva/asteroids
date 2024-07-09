@@ -2,6 +2,7 @@
 #define ENEMY_H
 
 #include "texture_pro.h"
+#include "array.h"
 #include "common.h"
 #include "timer.h"
 

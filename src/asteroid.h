@@ -2,6 +2,7 @@
 #define ASTEROID_H
 
 #include "common.h"
+#include "array.h"
 #include "texture_pro.h"
 
 typedef enum {

@@ -13,11 +13,13 @@
 #include "asteroid.h"
 #include "enemy.h"
 
-typedef enum {
-  PACIFIC,
-  REGULAR
-} GameMode;
+const float projectile_player_speed = 15.0;
+const float projectile_enemy_speed = 10.0;
 
+const float asteroid_speed = 4.0;
+const float enemy_speed = 5.0;
+
+// TODO: add menu
 typedef struct {
   Player player;
   Array projectiles;
@@ -31,34 +33,64 @@ typedef struct {
   GameMode game_mode;
 } GameState;
 
-const float projectile_player_speed = 15.0;
-const float projectile_enemy_speed = 10.0;
-
-const float asteroid_speed = 4.0;
-const float enemy_speed = 5.0;
-
-// TODO: add menu
-// TODO: add global game state struct
-
-void reset(Player *player, Array *projectiles, Array *asteroids, Array *enemies)
+void reset_state(GameState *state)
 {
   // Reset player attributes 
-  player->texture.dest.x = GetScreenWidth() / 2.0;
-  player->texture.dest.y = GetScreenHeight() / 2.0;
-  player->score = 0;
-  player->lifes = 2;
+  state->player.texture.dest.x = GetScreenWidth() / 2.0;
+  state->player.texture.dest.y = GetScreenHeight() / 2.0;
+  state->player.score = 0;
+  state->player.lifes = 2;
 
-  free(projectiles->ptr);
-  projectiles->ptr = NULL;
-  projectiles->length = 0;
+  free(state->projectiles.ptr);
+  state->projectiles.ptr = NULL;
+  state->projectiles.length = 0;
 
-  free(asteroids->ptr);
-  asteroids->ptr = NULL;
-  asteroids->length = 0;
+  free(state->asteroids.ptr);
+  state->asteroids.ptr = NULL;
+  state->asteroids.length = 0;
 
-  free(enemies->ptr);
-  enemies->ptr = NULL;
-  enemies->length = 0;
+  free(state->enemies.ptr);
+  state->enemies.ptr = NULL;
+  state->enemies.ptr = 0;
+}
+
+void on_player_death(GameState *state, CollidedObject object, int object_index)
+{
+  if (state->player.lifes == 1) {
+    PlaySound(state->sounds.explode);
+    printf("GAME: game over\n");
+    state->game_status = GAME_OVER;
+    state->player.death_position.x = state->player.texture.dest.x;
+    state->player.death_position.y = state->player.texture.dest.y;
+    timer_start(&state->player.death_timer, 2.0);
+    return;
+  }
+
+  state->player.lifes--;
+  state->player.death_position.x = state->player.texture.dest.x;
+  state->player.death_position.y = state->player.texture.dest.y;
+  state->player.texture.dest.x = GetScreenWidth() / 2.0;
+  state->player.texture.dest.y = GetScreenHeight() / 2.0;
+  state->game_status = PLAYER_DEATH_PAUSE;
+  timer_start(&state->player.death_timer, 3.0);
+
+  if (object == ASTEROID) {
+    delete_from_array(&state->asteroids, object_index);
+    PlaySound(state->sounds.explode);
+    return;
+  }
+
+  if (object == PROJECTILE) {
+    delete_from_array(&state->projectiles, object_index);
+    PlaySound(state->sounds.explode);
+    return;
+  }
+
+  if (object == ENEMY) {
+    delete_from_array(&state->enemies, object_index);
+    PlaySound(state->sounds.explode);
+    return;
+  }
 }
 
 void update(GameState *state)
@@ -93,15 +125,11 @@ void update(GameState *state)
     // Collision with player
     if (object_collision_check(projectile.texture.dest, state->player.texture.dest) && projectile.is_enemy_projectile) {
       on_player_death(
-        &state->player,
-        &state->asteroids,
-        &state->projectiles,
-        &state->enemies,
-        state->sounds,
-        &state->game_status,
+        state,
         p,
         PROJECTILE
       );
+      reset_state(state);
       break;
     }
 
@@ -125,15 +153,11 @@ void update(GameState *state)
     // Collision with player
     if (object_collision_check(asteroid->texture.dest, state->player.texture.dest)) {
       on_player_death(
-        &state->player,
-        &state->asteroids,
-        &state->projectiles,
-        &state->enemies,
-        state->sounds,
-        &state->game_status,
+        state, 
         a,
         ASTEROID
       ); 
+      reset_state(state);
       break;
     }
 
@@ -192,15 +216,11 @@ void update(GameState *state)
     // Collision with player
     if (object_collision_check(enemy->texture.dest, state->player.texture.dest)) {
       on_player_death(
-        &state->player,
-        &state->asteroids,
-        &state->projectiles,
-        &state->enemies,
-        state->sounds,
-        &state->game_status,
+        state, 
         e,
         ENEMY 
       ); 
+      reset_state(state);
       break;
     }
 
