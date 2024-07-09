@@ -24,8 +24,6 @@ const float projectile_enemy_speed = 10.0;
 const float asteroid_speed = 4.0;
 const float enemy_speed = 5.0;
 
-// TODO: break spawn methods into an generic array_push function?
-// TODO: add smaller asteroids spawn
 // TODO: add menu
 // TODO: add global game state struct
 
@@ -118,6 +116,7 @@ void update(
   for (int a = 0; a < asteroids->length; ++a) {
     Asteroid *asteroids_data = (Asteroid*)asteroids->ptr;
     Asteroid *asteroid = &asteroids_data[a];
+    Asteroid asteroid_copy = *asteroid;
 
     // Collision with player
     if (object_collision_check(asteroid->texture.dest, player->texture.dest)) {
@@ -150,9 +149,9 @@ void update(
       }
     }
 
-    if (collided_with_projectile && asteroid->size == BIG) {
-      Asteroid left = asteroid_build_small(*asteroid, DIAGONAL_LEFT);
-      Asteroid right = asteroid_build_small(*asteroid, DIAGONAL_RIGHT);
+    if (collided_with_projectile && asteroid_copy.size == BIG) {
+      Asteroid left = asteroid_build_small(asteroid_copy, DIAGONAL_LEFT);
+      Asteroid right = asteroid_build_small(asteroid_copy, DIAGONAL_RIGHT);
       asteroid_spawn(asteroids, left);
       asteroid_spawn(asteroids, right);
       continue;
@@ -294,7 +293,7 @@ void render(
   }
 }
 
-void renderGameOver() {
+void render_game_over() {
   DrawText(
     "Game Over - Press space to restart",
     GetScreenWidth() / 2,
@@ -343,11 +342,11 @@ int main(int argc, char *argv[]) {
     .is_boosting = false,
   };
 
-  Timer asteroidSpawnTimer;
-  timer_start(&asteroidSpawnTimer, 2.0);
+  Timer asteroid_spawn_timer;
+  timer_start(&asteroid_spawn_timer, 1.0);
 
-  Timer enemySpawnTimer;
-  timer_start(&enemySpawnTimer, 2.0);
+  Timer enemy_spawn_timer;
+  timer_start(&enemy_spawn_timer, 2.0);
 
   Array projectiles = {
     .ptr = NULL,
@@ -377,8 +376,8 @@ int main(int argc, char *argv[]) {
         &projectiles,
         &asteroids,
         &enemies,
-        &asteroidSpawnTimer,
-        &enemySpawnTimer,
+        &asteroid_spawn_timer,
+        &enemy_spawn_timer,
         sounds,
         &game_status,
         game_mode
@@ -389,7 +388,7 @@ int main(int argc, char *argv[]) {
     BeginDrawing();
       ClearBackground(BLACK);
       if (game_status == GAME_OVER) {
-        renderGameOver();
+        render_game_over();
       } else {
         render(&player, projectiles, asteroids, enemies, &game_status, assets);
       }

@@ -13,14 +13,18 @@ Asteroid asteroid_build_big()
     .texture = build_texture_pro(NULL, "./assets/asteroid_big.png", NULL)
   };
 
+  ObjectStartPosition start_pos = object_start_position_by_spawn(asteroid.spawn, false);
+
   asteroid.spawn = random_number(spawn_limit + 1);
-  asteroid.diagonal_movement = random_number(asteroid_movement_limit + 1);
+  if (start_pos.position.x > 400 && start_pos.position.x < 1000 && start_pos.position.y > 400 && start_pos.position.y < 1000)
+    asteroid.diagonal_movement = random_number(asteroid_movement_limit + 1);
+  else
+    asteroid.diagonal_movement = NONE;
+
   asteroid.size = BIG;
 
-  ObjectStartPosition startPosition = object_start_position_by_spawn(asteroid.spawn, false);
-
-  asteroid.texture.dest.x = startPosition.position.x;
-  asteroid.texture.dest.y = startPosition.position.y;
+  asteroid.texture.dest.x = start_pos.position.x;
+  asteroid.texture.dest.y = start_pos.position.y;
 
   return asteroid;
 }
