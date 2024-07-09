@@ -16,6 +16,7 @@ typedef struct {
   Timer death_timer;
 } Player;
 
+Player player_build();
 void move_player(Player *player, Sound thrust_sound);
 void render_player(Player *player, GameStatus *game_status, Texture2D *fire_sprite, Texture2D *damage_sprite);
 void on_player_death(

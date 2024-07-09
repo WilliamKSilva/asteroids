@@ -18,6 +18,19 @@ typedef enum {
   REGULAR
 } GameMode;
 
+typedef struct {
+  Player player;
+  Array projectiles;
+  Array asteroids;
+  Array enemies;
+  Timer asteroid_spawn_timer;
+  Timer enemy_spawn_timer;
+  Sounds sounds;
+  StaticAssets assets;
+  GameStatus game_status;
+  GameMode game_mode;
+} GameState;
+
 const float projectile_player_speed = 15.0;
 const float projectile_enemy_speed = 10.0;
 
@@ -48,53 +61,44 @@ void reset(Player *player, Array *projectiles, Array *asteroids, Array *enemies)
   enemies->length = 0;
 }
 
-void update(
-  Player *player,
-  Array *projectiles,
-  Array *asteroids,
-  Array *enemies,
-  Timer *asteroid_spawn_timer,
-  Timer *enemy_spawn_timer,
-  Sounds sounds,
-  GameStatus *game_status,
-  GameMode game_mode)
+void update(GameState *state)
 {
-  if (*game_status == PLAYER_DEATH_PAUSE) {
-    if (timer_is_done(&player->death_timer)) {
-      *game_status = RUNNING;
+  if (state->game_status == PLAYER_DEATH_PAUSE) {
+    if (timer_is_done(&state->player.death_timer)) {
+      state->game_status = RUNNING;
     }
 
     return;
   }
 
   // Input updates
-  move_player(player, sounds.thrust);
+  move_player(&state->player, state->sounds.thrust);
   if (IsKeyPressed(KEY_SPACE)) {
     Vector2 player_pos = {
-      .x = player->texture.dest.x,
-      .y = player->texture.dest.y,
+      .x = state->player.texture.dest.x,
+      .y = state->player.texture.dest.y,
     };
 
-    Vector2 projectile_pos = projectile_start_position(player_pos, player->texture.rotation);
-    projectile_spawn(projectiles, &projectile_pos, player->texture.rotation, false);
-    PlaySound(sounds.shoot);
+    Vector2 projectile_pos = projectile_start_position(player_pos, state->player.texture.rotation);
+    projectile_spawn(&state->projectiles, &projectile_pos, state->player.texture.rotation, false);
+    PlaySound(state->sounds.shoot);
   }
 
   // Scripted updates
   // Projectiles
-  for (int p = 0; p < projectiles->length; ++p) {
-    Projectile* projectiles_data = projectiles->ptr;
+  for (int p = 0; p < state->projectiles.length; ++p) {
+    Projectile* projectiles_data = state->projectiles.ptr;
     Projectile projectile = projectiles_data[p];
 
     // Collision with player
-    if (object_collision_check(projectile.texture.dest, player->texture.dest) && projectile.is_enemy_projectile) {
+    if (object_collision_check(projectile.texture.dest, state->player.texture.dest) && projectile.is_enemy_projectile) {
       on_player_death(
-        player,
-        asteroids,
-        projectiles,
-        enemies,
-        sounds,
-        game_status,
+        &state->player,
+        &state->asteroids,
+        &state->projectiles,
+        &state->enemies,
+        state->sounds,
+        &state->game_status,
         p,
         PROJECTILE
       );
@@ -108,25 +112,25 @@ void update(
     }
 
     if (object_is_out_of_bounds(object_position(projectile.texture))) {
-      delete_from_array(projectiles, p);
+      delete_from_array(&state->projectiles, p);
     }
   }
 
   // Asteroids
-  for (int a = 0; a < asteroids->length; ++a) {
-    Asteroid *asteroids_data = (Asteroid*)asteroids->ptr;
+  for (int a = 0; a < state->asteroids.length; ++a) {
+    Asteroid *asteroids_data = (Asteroid*)state->asteroids.ptr;
     Asteroid *asteroid = &asteroids_data[a];
     Asteroid asteroid_copy = *asteroid;
 
     // Collision with player
-    if (object_collision_check(asteroid->texture.dest, player->texture.dest)) {
+    if (object_collision_check(asteroid->texture.dest, state->player.texture.dest)) {
       on_player_death(
-        player,
-        asteroids,
-        projectiles,
-        enemies,
-        sounds,
-        game_status,
+        &state->player,
+        &state->asteroids,
+        &state->projectiles,
+        &state->enemies,
+        state->sounds,
+        &state->game_status,
         a,
         ASTEROID
       ); 
@@ -134,16 +138,16 @@ void update(
     }
 
     bool collided_with_projectile = false;
-    for (int p = 0; p < projectiles->length; ++p) {
-      Projectile *projectiles_data = projectiles->ptr;
+    for (int p = 0; p < state->projectiles.length; ++p) {
+      Projectile *projectiles_data = state->projectiles.ptr;
       Projectile *projectile = &projectiles_data[p];
 
       if (object_collision_check(projectile->texture.dest, asteroid->texture.dest)) {
-        delete_from_array(asteroids, a);
-        delete_from_array(projectiles, p);
+        delete_from_array(&state->asteroids, a);
+        delete_from_array(&state->projectiles, p);
 
-        player->score += score.big_asteroid;
-        PlaySound(sounds.destroyed);
+        state->player.score += score.big_asteroid;
+        PlaySound(state->sounds.destroyed);
         collided_with_projectile = true;
         break;
       }
@@ -152,8 +156,8 @@ void update(
     if (collided_with_projectile && asteroid_copy.size == BIG) {
       Asteroid left = asteroid_build_small(asteroid_copy, DIAGONAL_LEFT);
       Asteroid right = asteroid_build_small(asteroid_copy, DIAGONAL_RIGHT);
-      asteroid_spawn(asteroids, left);
-      asteroid_spawn(asteroids, right);
+      asteroid_spawn(&state->asteroids, left);
+      asteroid_spawn(&state->asteroids, right);
       continue;
     }
 
@@ -169,31 +173,31 @@ void update(
 
     if (object_is_out_of_bounds(position))
     {
-      delete_from_array(asteroids, a);
+      delete_from_array(&state->asteroids, a);
       continue;
     }
   }
 
   // Enemies 
-  for (int e = 0; e < enemies->length; ++e) {
-    Enemy *enemiesData = (Enemy*)enemies->ptr;
+  for (int e = 0; e < state->enemies.length; ++e) {
+    Enemy *enemiesData = (Enemy*)state->enemies.ptr;
     Enemy *enemy = &enemiesData[e];
 
     if (object_is_out_of_bounds(object_position(enemy->texture)))
     {
-      delete_from_array(enemies, e);
+      delete_from_array(&state->enemies, e);
       continue;
     }
 
     // Collision with player
-    if (object_collision_check(enemy->texture.dest, player->texture.dest)) {
+    if (object_collision_check(enemy->texture.dest, state->player.texture.dest)) {
       on_player_death(
-        player,
-        asteroids,
-        projectiles,
-        enemies,
-        sounds,
-        game_status,
+        &state->player,
+        &state->asteroids,
+        &state->projectiles,
+        &state->enemies,
+        state->sounds,
+        &state->game_status,
         e,
         ENEMY 
       ); 
@@ -201,19 +205,19 @@ void update(
     }
 
     bool collided_with_projectile = false;
-    for (int p = 0; p < projectiles->length; ++p) {
-      Projectile *projectileData = projectiles->ptr;
+    for (int p = 0; p < state->projectiles.length; ++p) {
+      Projectile *projectileData = state->projectiles.ptr;
       Projectile *projectile = &projectileData[p];
 
       if (projectile->is_enemy_projectile)
         continue;
 
       if (object_collision_check(projectile->texture.dest, enemy->texture.dest)) {
-        delete_from_array(enemies, e);
-        delete_from_array(projectiles, p);
+        delete_from_array(&state->enemies, e);
+        delete_from_array(&state->projectiles, p);
 
-        player->score += score.enemy;
-        PlaySound(sounds.destroyed);
+        state->player.score += score.enemy;
+        PlaySound(state->sounds.destroyed);
         collided_with_projectile = true;
         break;
       }
@@ -223,14 +227,14 @@ void update(
       continue;
 
     enemy_move(enemy);
-    enemy->texture.rotation = object_rotation_torwards_target(object_position(enemy->texture), object_position(player->texture));
+    enemy->texture.rotation = object_rotation_torwards_target(object_position(enemy->texture), object_position(state->player.texture));
 
-    if (timer_is_done(&enemy->shoot_timer) && game_mode == REGULAR) {
+    if (timer_is_done(&enemy->shoot_timer) && state->game_mode == REGULAR) {
       Vector2 enemy_pos = object_position(enemy->texture);
       Vector2 projectile_pos = projectile_start_position(enemy_pos, enemy->texture.rotation);
 
       projectile_spawn(
-        projectiles,
+        &state->projectiles,
         &projectile_pos,
         enemy->texture.rotation,
         true
@@ -240,55 +244,49 @@ void update(
     }
   }
 
-  if (timer_is_done(asteroid_spawn_timer)) {
+  if (timer_is_done(&state->asteroid_spawn_timer)) {
     // Spawn new Asteroid 
     Asteroid asteroid = asteroid_build_big();
-    asteroid_spawn(asteroids, asteroid);
+    asteroid_spawn(&state->asteroids, asteroid);
     
     // Restart timer
-    timer_start(asteroid_spawn_timer, asteroid_spawn_timer->life_time);
+    timer_start(&state->asteroid_spawn_timer, state->asteroid_spawn_timer.life_time);
   }
 
-  if (timer_is_done(enemy_spawn_timer)) {
+  if (timer_is_done(&state->enemy_spawn_timer)) {
     // Spawn new Enemy 
-    enemy_spawn(enemies);
+    enemy_spawn(&state->enemies);
     
     // Restart timer
-    timer_start(enemy_spawn_timer, enemy_spawn_timer->life_time);
+    timer_start(&state->enemy_spawn_timer, state->enemy_spawn_timer.life_time);
   }
 }
 
-void render(
-  Player *player,
-  Array projectiles,
-  Array asteroids,
-  Array enemies,
-  GameStatus *gameStatus,
-  StaticAssets assets)
+void render(GameState *state)
 {
-  render_player(player, gameStatus, &assets.playerShipFire, &assets.damage);
+  render_player(&state->player, &state->game_status, &state->assets.playerShipFire, &state->assets.damage);
 
   char lifeBuf[20];
   char scoreBuf[20];
 
-  snprintf(scoreBuf, 20, "Score: %d", player->score);
+  snprintf(scoreBuf, 20, "Score: %d", state->player.score);
   DrawText(scoreBuf, 50, 50, 25, WHITE);
 
-  snprintf(lifeBuf, 20, "Lifes: %d", player->lifes);
+  snprintf(lifeBuf, 20, "Lifes: %d", state->player.lifes);
   DrawText(lifeBuf, 50, 80, 25, RED);
 
-  for (int i = 0; i < projectiles.length; ++i) {
-    Projectile* ptr = (Projectile*)projectiles.ptr;
+  for (int i = 0; i < state->projectiles.length; ++i) {
+    Projectile* ptr = (Projectile*)state->projectiles.ptr;
     render_texture_pro(ptr[i].texture); 
   }
 
-  for (int i = 0; i < asteroids.length; ++i) {
-    Asteroid* asteroidsData = (Asteroid*)asteroids.ptr;
+  for (int i = 0; i < state->asteroids.length; ++i) {
+    Asteroid* asteroidsData = (Asteroid*)state->asteroids.ptr;
     render_texture_pro(asteroidsData[i].texture); 
   }
 
-  for (int i = 0; i < enemies.length; ++i) {
-    Enemy* enemiesData = (Enemy*)enemies.ptr;
+  for (int i = 0; i < state->enemies.length; ++i) {
+    Enemy* enemiesData = (Enemy*)state->enemies.ptr;
     render_texture_pro(enemiesData[i].texture); 
   }
 }
@@ -309,88 +307,70 @@ int main(int argc, char *argv[]) {
   SetTargetFPS(60);
   srand(time(NULL));
 
-  GameStatus game_status = RUNNING; 
   GameMode game_mode = REGULAR;
-
   if (argc > 1) {
     if (strcmp(argv[1], "mode=PACIFIC") == 0) {
       game_mode = PACIFIC;
     };
   }
 
-  Sounds sounds = {
-    .shoot = LoadSound("./assets/shoot.wav"),
-    .explode = LoadSound("./assets/explode.wav"),
-    .thrust = LoadSound("./assets/thrust.wav"),
-    .destroyed = LoadSound("./assets/asteroid.wav")
+  GameState state = {
+    .game_mode = game_mode,
+    .game_status = RUNNING,
+    .player = player_build(),
+    .asteroid_spawn_timer = {
+      .life_time = 1.0,
+      .start_time = 0.0
+    },
+    .enemy_spawn_timer = {
+      .life_time = 2.0,
+      .start_time = 0.0
+    },
+    .enemies = {
+      .ptr = NULL,
+      .length = 0,
+      .itemSize = sizeof(Enemy)
+    },
+    .asteroids = {
+      .ptr = NULL,
+      .length = 0,
+      .itemSize = sizeof(Asteroid)
+    },
+    .projectiles = {
+      .ptr = NULL,
+      .length = 0,
+      .itemSize = sizeof(Projectile)
+    },
+    .sounds = {
+      .shoot = LoadSound("./assets/shoot.wav"),
+      .explode = LoadSound("./assets/explode.wav"),
+      .thrust = LoadSound("./assets/thrust.wav"),
+      .destroyed = LoadSound("./assets/asteroid.wav")
+    },
+    .assets = {
+      .playerShipFire = LoadTexture("./assets/fire.png"),
+      .damage = LoadTexture("./assets/damage.png")
+    },
   };
 
-  StaticAssets assets = {
-    .playerShipFire = LoadTexture("./assets/fire.png"),
-    .damage = LoadTexture("./assets/damage.png")
-  };
-
-  Vector2 playerStartPosition = { 
-    .x = (float)GetScreenWidth() / 2.0,
-    .y = (float)GetScreenHeight() / 2.0
-  };
-  Player player = {
-    .texture = build_texture_pro(&playerStartPosition, "./assets/player.png", NULL),
-    .speed = 0.0,
-    .lifes = 2,
-    .score = 0,
-    .is_boosting = false,
-  };
-
-  Timer asteroid_spawn_timer;
-  timer_start(&asteroid_spawn_timer, 1.0);
-
-  Timer enemy_spawn_timer;
-  timer_start(&enemy_spawn_timer, 2.0);
-
-  Array projectiles = {
-    .ptr = NULL,
-    .length = 0,
-    .itemSize = sizeof(Projectile)
-  };
-
-  Array asteroids = {
-    .ptr = NULL,
-    .length = 0,
-    .itemSize = sizeof(Asteroid)
-  };
-
-  Array enemies = {
-    .ptr = NULL,
-    .length = 0,
-    .itemSize = sizeof(Enemy)
-  };
+  timer_start(&state.asteroid_spawn_timer, 1.0);
+  timer_start(&state.enemy_spawn_timer, 2.0);
 
   while (!WindowShouldClose()) {
     // Update logic 
-    if (game_status == GAME_OVER && IsKeyPressed(KEY_SPACE)) {
-      game_status = RUNNING;
+    if (state.game_status == GAME_OVER && IsKeyPressed(KEY_SPACE)) {
+      state.game_status = RUNNING;
     } else {
-      update(
-        &player,
-        &projectiles,
-        &asteroids,
-        &enemies,
-        &asteroid_spawn_timer,
-        &enemy_spawn_timer,
-        sounds,
-        &game_status,
-        game_mode
-      );
+      update(&state);
     }
 
     // Render logic
     BeginDrawing();
       ClearBackground(BLACK);
-      if (game_status == GAME_OVER) {
+      if (state.game_status == GAME_OVER) {
         render_game_over();
       } else {
-        render(&player, projectiles, asteroids, enemies, &game_status, assets);
+        render(&state);
       }
     EndDrawing();
   }

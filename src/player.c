@@ -12,6 +12,24 @@ const float player_impulse = 1.0;
 const float player_max_impulse = 10.0;
 const float player_drag = 0.5;
 
+Player player_build()
+{
+  Vector2 pos = {
+    .x = GetScreenWidth() / 2.0f,
+    .y = GetScreenHeight() / 2.0f,
+  };
+
+  Player player = {
+    .texture = build_texture_pro(&pos, "./assets/player.png", NULL),
+    .speed = 0.0,
+    .lifes = 2,
+    .score = 0,
+    .is_boosting = false,
+  };
+
+  return player;
+}
+
 void move_player(Player *player, Sound thrust_sound)
 {
   if (IsKeyDown(KEY_A))
