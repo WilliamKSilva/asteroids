@@ -51,7 +51,7 @@ void reset_state(GameState *state)
 
   free(state->enemies.ptr);
   state->enemies.ptr = NULL;
-  state->enemies.ptr = 0;
+  state->enemies.length = 0;
 }
 
 void on_player_death(GameState *state, CollidedObject object, int object_index)
