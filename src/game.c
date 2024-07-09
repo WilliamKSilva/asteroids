@@ -63,6 +63,7 @@ void on_player_death(GameState *state, CollidedObject object, int object_index)
     state->player.death_position.x = state->player.texture.dest.x;
     state->player.death_position.y = state->player.texture.dest.y;
     timer_start(&state->player.death_timer, 2.0);
+    reset_state(state);
     return;
   }
 
@@ -129,7 +130,6 @@ void update(GameState *state)
         p,
         PROJECTILE
       );
-      reset_state(state);
       break;
     }
 
@@ -157,7 +157,6 @@ void update(GameState *state)
         a,
         ASTEROID
       ); 
-      reset_state(state);
       break;
     }
 
@@ -220,7 +219,6 @@ void update(GameState *state)
         e,
         ENEMY 
       ); 
-      reset_state(state);
       break;
     }
 
