@@ -3,6 +3,7 @@
 #include <raymath.h>
 #include <stdio.h>
 #include "common.h"
+#include "array.h"
 
 Asteroid asteroid_build_big()
 {
@@ -15,9 +16,9 @@ Asteroid asteroid_build_big()
 
   ObjectStartPosition start_pos = object_start_position_by_spawn(asteroid.spawn, false);
 
-  asteroid.spawn = random_number(spawn_limit + 1);
+  asteroid.spawn = random_number(0, spawn_limit);
   if (start_pos.position.x > 400 && start_pos.position.x < 1000 && start_pos.position.y > 400 && start_pos.position.y < 1000)
-    asteroid.diagonal_movement = random_number(asteroid_movement_limit + 1);
+    asteroid.diagonal_movement = random_number(0, asteroid_movement_limit);
   else
     asteroid.diagonal_movement = NONE;
 
@@ -72,5 +73,38 @@ void asteroid_spawn(Array *asteroids, Asteroid asteroid)
 
     ptr[asteroids->length - 1] = asteroid;
     asteroids->ptr = ptr;
+  }
+}
+
+void asteroid_build_menu(Array *asteroids_menu)
+{
+  asteroids_menu->length = 6;
+  asteroids_menu->itemSize = sizeof(Asteroid);
+
+  Asteroid *ptr = malloc(6 * sizeof(Asteroid));
+  asteroids_menu->ptr = ptr;
+
+  for (int i = 0; i < 6; i++) {
+    Vector2 pos = {
+      .x = random_number(0, GetScreenWidth()),
+      .y = random_number(0, GetScreenHeight())
+    };
+
+    TexturePro texture;
+    AsteroidSize size = random_number(0, BIG);
+    if (size == BIG) {
+      texture = build_texture_pro(&pos, "./assets/asteroid_big.png", NULL);
+    } else {
+      texture = build_texture_pro(&pos, "./assets/asteroid_small.png", NULL);
+    }
+
+    Asteroid asteroid = {
+      .diagonal_movement = NONE,
+      .size = size,
+      .spawn = LEFT,
+      .texture = texture 
+    };
+
+    ptr[i] = asteroid;
   }
 }

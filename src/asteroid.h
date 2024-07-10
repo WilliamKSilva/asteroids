@@ -18,8 +18,8 @@ typedef struct {
 } Asteroid;
 
 void asteroid_spawn(Array *asteroids, Asteroid asteroid);
-void asteroid_move(Asteroid *asteroid);
 Asteroid asteroid_build_big();
 Asteroid asteroid_build_small(Asteroid asteroid_big, DiagonalMovement movementbig_aste);
+void asteroid_build_menu(Array *asteroids_menu);
 
 #endif

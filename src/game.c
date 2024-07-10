@@ -31,6 +31,7 @@ typedef struct {
   StaticAssets assets;
   GameStatus game_status;
   GameMode game_mode;
+  Array asteroids_menu;
 } GameState;
 
 void reset_state(GameState *state)
@@ -309,6 +310,34 @@ void render(GameState *state)
   }
 }
 
+void render_menu(Array asteroids_menu) {
+  for (int i = 0; i < asteroids_menu.length; i++) {
+    Asteroid* asteroids_data = (Asteroid*)asteroids_menu.ptr;
+    render_texture_pro(asteroids_data[i].texture);
+  }
+
+  Vector2 title_pos = {
+    .x = GetScreenWidth() / 2 - 200,
+    .y = GetScreenHeight() / 2 - 150,
+  };
+
+  DrawText(
+    "Asteroids",
+    title_pos.x,
+    title_pos.y,
+    51,
+    WHITE
+  );
+
+  DrawText(
+    "Press Enter to start",
+    title_pos.x - 50,
+    title_pos.y + 130,
+    31,
+    WHITE
+  );
+}
+
 void render_game_over() {
   DrawText(
     "Game Over - Press space to restart",
@@ -334,7 +363,7 @@ int main(int argc, char *argv[]) {
 
   GameState state = {
     .game_mode = game_mode,
-    .game_status = RUNNING,
+    .game_status = MENU,
     .player = player_build(),
     .asteroid_spawn_timer = {
       .life_time = 1.0,
@@ -378,6 +407,12 @@ int main(int argc, char *argv[]) {
     // Update logic 
     if (state.game_status == GAME_OVER && IsKeyPressed(KEY_SPACE)) {
       state.game_status = RUNNING;
+    } else if (state.game_status == MENU) {
+      if (state.asteroids_menu.length == 0)
+        asteroid_build_menu(&state.asteroids_menu);
+
+      if (IsKeyPressed(KEY_ENTER))
+        state.game_status = RUNNING;
     } else {
       update(&state);
     }
@@ -385,7 +420,9 @@ int main(int argc, char *argv[]) {
     // Render logic
     BeginDrawing();
       ClearBackground(BLACK);
-      if (state.game_status == GAME_OVER) {
+      if (state.game_status == MENU) {
+        render_menu(state.asteroids_menu);
+      } else if (state.game_status == GAME_OVER) {
         render_game_over();
       } else {
         render(&state);

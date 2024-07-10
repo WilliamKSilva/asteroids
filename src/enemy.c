@@ -17,7 +17,7 @@ void enemy_spawn(Array *enemies)
     } 
   };
 
-  enemy.spawn = random_number(spawn_limit);
+  enemy.spawn = random_number(0, spawn_limit);
 
   ObjectStartPosition startPosition = object_start_position_by_spawn(enemy.spawn, true);
   enemy.texture.dest.x = startPosition.position.x;

@@ -3,6 +3,7 @@
 #include "raymath.h"
 #include <math.h>
 #include <raylib.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 Score score = {
@@ -10,9 +11,9 @@ Score score = {
   .big_asteroid = 100
 };
 
-int random_number(int limit)
+int random_number(int min, int max)
 {
-  return rand() % limit; 
+  return rand() % (max + 1 - min) + min; 
 }
 
 ObjectStartPosition object_start_position_by_spawn(Spawn spawn, bool getRotation) {
@@ -27,9 +28,11 @@ ObjectStartPosition object_start_position_by_spawn(Spawn spawn, bool getRotation
     .rotation = 0.0
   };
 
+  printf("%d\n", spawn);
+
   if (spawn == RIGHT) {
     startPosition.position.x = (float)screen_width + 5.0;
-    startPosition.position.y = (float)random_number(screen_height);
+    startPosition.position.y = (float)random_number(100, screen_height);
 
     if (getRotation)
       startPosition.rotation = 270.0;
@@ -39,7 +42,7 @@ ObjectStartPosition object_start_position_by_spawn(Spawn spawn, bool getRotation
 
   if (spawn == LEFT) {
     startPosition.position.x = -5.0;
-    startPosition.position.y = (float)random_number(screen_height);
+    startPosition.position.y = (float)random_number(100, screen_height);
 
     if (getRotation)
       startPosition.rotation = 90.0;
@@ -48,7 +51,7 @@ ObjectStartPosition object_start_position_by_spawn(Spawn spawn, bool getRotation
   }
 
   if (spawn == TOP) {
-    startPosition.position.x = (float)random_number(screen_width);
+    startPosition.position.x = (float)random_number(100, screen_width);
     startPosition.position.y = -5.0;
 
     if (getRotation)
@@ -58,7 +61,7 @@ ObjectStartPosition object_start_position_by_spawn(Spawn spawn, bool getRotation
   }
 
   if (spawn == BOTTOM) {
-    startPosition.position.x = (float)random_number(screen_width);
+    startPosition.position.x = (float)random_number(100, screen_width);
     startPosition.position.y = (float)screen_height + 5.0;
 
     if (getRotation)
@@ -137,10 +140,10 @@ Vector2 object_position(TexturePro texture) {
 }
 
 bool object_is_out_of_bounds(Vector2 position) {
-  if (position.x > GetScreenWidth() + 5 || position.x < -5)
+  if (position.x > GetScreenWidth() + 50 || position.x < -50)
       return true;
 
-  if (position.y > GetScreenHeight() + 5 || position.y < -5)
+  if (position.y > GetScreenHeight() + 50 || position.y < -50)
       return true;
 
   return false;
